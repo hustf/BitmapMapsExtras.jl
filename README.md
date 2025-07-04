@@ -43,6 +43,10 @@ The principal curvatures are defined in the tangent plane, so in steep terrain, 
   ## Integration functions
 
   - Find traces starting at a point, or ensemble of starting points
-  
-  An ensemble might be a grid, uniformly random, or based on e.g. divergence. User supplies the vector-field function for the differential equation.
 
+For drawing 
+An ensemble might be a grid, uniformly random, or based on e.g. divergence (as in fluid flow) or previously drawn [hachures](https://andywoodruff.com/blog/hachures-and-sketchy-relief-maps/)  in an iterative approach. 
+
+User supplies the vector-field function for the differential equation. We're solving the equation in non-discrete coordinates, which requires interpolation between the neighbouring points. We do this 'lazily', i.e. we only interpolate where needed and try to avoid memory allocations.
+
+Other than that, there's not much functionality here - this is just wrapping some very useful functionality from [OrdinaryDiffEq](https://docs.sciml.ai/OrdinaryDiffEq/stable/) in case user isn't quite familiar with the interface. The solutions are stored very effectively, so we finish finding the solutions before we start drawing traces.
