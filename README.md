@@ -1,1 +1,48 @@
 # BitmapMapsExtra
+
+High dependency, dubious gain: Experiments on top of the BitmapMaps pipeline.
+
+
+
+## Drawing functions
+
+BitmapMaps can draw single-color lines, triangles, squares on top of a bitmap already (text is provided
+in a vector graphics - svg - layer.
+
+Here we add other stuff as needed. So far:
+- Draw vector glyps
+  
+  For gradients and other vector fields
+- Draw bidirectional vector glyphs
+  
+  For curvature, which is 180° symmetrical
+  
+- Draw principal directions glyphs
+  
+  For principal curvatures. In the tangent plane, these are orthornormal, but not in the drawing plane.
+  
+- Draw tangent basis planes
+  
+  For checking that the basis planes are reasonable.
+  
+- Draw traces
+  
+  For streamplots of unit-vector-fields. Each streamline can add opacity, in order to visualize divergence
+
+  ## Differential geometry functions
+
+- Extract tangent basis from height-maps
+
+Here, the x-axis lies in the yz-plane. Samples a 5x5 window in a non-allocating way. BitmapMaps already finds the surface normal vector, but for
+a smaller window. This is more robust, but will also hide a little detail.
+
+- Find principal curvatures from height-maps in a non-allocating way.
+  
+The principal curvatures are defined in the tangent plane, so in steep terrain, our estimatition is inaccurate. We optimized the accuracy by comparing with analytically known curvatures for spheroids, cylinders, etc. Samples a 5x5 window around each pixel or cell.
+
+  ## Integration functions
+
+  - Find traces starting at a point, or ensemble of starting points
+  
+  An ensemble might be a grid, uniformly random, or based on e.g. divergence. User supplies the vector-field function for the differential equation.
+
