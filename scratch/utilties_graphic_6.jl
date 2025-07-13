@@ -97,7 +97,7 @@ function vector!(img, A::CartesianIndex{2}, Δi::Int, Δj::Int)
                 throw("ah")
             end 
     
-            color_neighbors!(img, R, CartesianIndex(i1, j1), ρ(i) )
+            spray_neighbors!(img, R, CartesianIndex(i1, j1), ρ(i) )
             err -= li
             if err < 0
                 i1 += si
