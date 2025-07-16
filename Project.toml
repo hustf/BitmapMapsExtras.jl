@@ -1,7 +1,7 @@
 name = "BitmapMapsExtras"
 uuid = "91f7643b-a5d6-413a-971e-f956c21a1050"
 authors = ["hustf <hustf@users.noreply.github.com> and contributors"]
-version = "0.0.1"
+version = "0.0.2"
 
 [deps]
 BitmapMaps = "dcf5437e-85d8-460a-98f8-69920db83c61"
@@ -12,6 +12,10 @@ ImageTransformations = "02fcd773-0e25-5acc-982a-7f6622650795"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LinearSolve = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"
+OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
+OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
+SciMLBase = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
@@ -23,4 +27,8 @@ ImageTransformations = "0.10.2"
 Interpolations = "0.16.1"
 LinearAlgebra = "1.11.0"
 LinearSolve = "3.18.2"
+OffsetArrays = "1.17.0"
+OrdinaryDiffEq = "6.98.0"
+RecursiveArrayTools = "3.34.1"
+SciMLBase = "2.103.0"
 StaticArrays = "1.9.13"

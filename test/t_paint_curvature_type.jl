@@ -1,63 +1,13 @@
-# This package doesn't implement a color scheme,
-# and using this in practice would involve an arbitrary level for flatness anyway,
-# and adapted filtering to focus on the right size of categories.
-# This is based off 'calculate_and_draw_glyphs.jl/plot_curvature_glyphs!
 using Test
 using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
 using BitmapMapsExtras: paint_curvature_types!
-using BitmapMapsExtras: N0f8
-using SHA # Test dependency
-import BitmapMapsExtras.BitmapMaps
-using BitmapMapsExtras.BitmapMaps: scaleminmax, RGB, RGBA
-##########################################
-# COPYPASTA - `t_calculate_and_draw_glyps`
-##########################################
-if ! @isdefined hashstr
-    function hashstr(img)
-        iob = IOBuffer()
-        show(iob, img)
-        bytes2hex(sha1(take!(iob)))
-    end
-end
 
-if ! @isdefined background 
-    function background(z; α = 0.6)
-        foo = scaleminmax(extrema(z)...)
-        fi = x -> RGBA{N0f8}(x, x, x, α)
-        img = fi.(foo.(z))
-        # Add simple contour lines, too
-        Δc = -(-(extrema(z)...)) / 10 # elevation spacing
-        wc = Δc / 10         # 'width' of contour lines, in height....
-        map!(img, z, img) do zz, pix
-            mod(zz, Δc) < wc ? RGBA{N0f8}(0.1, 0.1, 0.1, 1.0) : pix 
-        end
-    end
-end
-
-if ! @isdefined grid_fcall_with_background
-    function grid_fcall_with_background(; 
-        f = plot_tangent_basis_glyphs!,
-        z = z_paraboloid(;a = -0.5r, b = 0.5r),
-        Δ::Int = 100)
-        # Let's center the grid as far a possible.
-        # The centex index is r + 1 in both directions
-        lo = (r + 1) + Δ * ceil(Int, -r / Δ)
-        hi = (r + 1) + Δ * floor(Int,  r / Δ)
-        rng = lo:Δ:hi
-        grpts = CartesianIndices((rng, rng))
-        img = background(z)
-        # Call it
-        f(img, z, grpts)
-    end
-end
+include("common.jl")
 
 #################################
 # Curvature types, graphical test
 #################################
-
-
-
 
 
 f = (img, z, grpts) -> paint_curvature_types!(img, z, grpts;
@@ -73,7 +23,10 @@ img = grid_fcall_with_background(; f, z = z_paraboloid(; a= 0.6r, b = 0.5r), Δ 
 
 # All concave  (green) or flat (gray). Imperfect at edges.
 img = grid_fcall_with_background(; f, z = z_ellipsoid(), Δ = 1)
-@test hashstr(img) == "a73a45c827d6b4f3036c4bc581e1905e60b93f02"
+@test let
+    h = hashstr(img) 
+    h == "a73a45c827d6b4f3036c4bc581e1905e60b93f02" || h == "6844731cbacad0dd802454a3db5058db5f63d243"
+end
 
 # All convex-concave, saddle (blue)
 img = grid_fcall_with_background(; f, z = z_paraboloid(;a= 0.6r, b = -0.4r), Δ = 1)

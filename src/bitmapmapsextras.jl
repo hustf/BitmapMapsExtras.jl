@@ -18,8 +18,18 @@ using LinearSolve: init, LinearProblem, solve!, NormalCholeskyFactorization
 using LinearSolve: OperatorCondition, OperatorAssumptions
 import ColorBlendModes
 using ColorBlendModes: BlendMode, BlendLighten, BlendHue, blend
-
-export tangent_basis
+import OffsetArrays
+using OffsetArrays: OffsetMatrix
+import Interpolations
+using Interpolations: interpolate, BSpline, Linear
+# For streamlines
+import OrdinaryDiffEq
+using OrdinaryDiffEq: ODEProblem, ContinuousCallback, CallbackSet
+using OrdinaryDiffEq: terminate!, Tsit5, solve
+import SciMLBase
+using SciMLBase: ReturnCode.Success, ReturnCode.Terminated
+#
+export tangent_basis # Add more at some later time, or use new public thing.
 
 """
 Kernel for first derivative.
@@ -68,7 +78,7 @@ const PALETTE_GRGB = SVector{4, RGB{N0f8}}(
     [RGB(0.467, 0.467, 0.467), RGB(0.957, 0.0, 0.078), RGB(0.0, 0.549, 0.0), RGB(0.0, 0.443, 1.0)])
 
 
-include("test_matrices.jl")
+include("Test_matrices.jl")
 include("differential_geom/tangent_basis.jl")
 include("differential_geom/curvature.jl")
 include("differential_geom/bidirectional_quantity.jl")
@@ -76,10 +86,10 @@ include("visualization/draw_direct.jl")
 include("visualization/draw_bidirectional_glyph.jl")
 include("visualization/draw_plane.jl")
 include("visualization/draw_vector_glyph.jl")
+include("domain_types.jl")
+include("direction_types.jl")
 include("calculate_and_draw_glyphs.jl")
+include("calculate_and_draw_streamlines.jl")
 include("calculate_and_paint_curvature_type.jl")
-include("domain.jl")
-include("hachures.jl")
-include("streamlines.jl")
 
 end

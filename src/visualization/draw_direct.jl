@@ -111,3 +111,39 @@ function spray_neighbors!(img::Matrix{GrayA{N0f8}}, R, C::CartesianIndex{2}, r)
     end
     img
 end
+
+#= OLD, works ok for vectors.
+"""
+    spray_neighbors!(img::Matrix{GrayA{N0f8}}, R, C::CartesianIndex{2}, r)
+
+Spray the area around a pixel, alpha channel variation is parabolic with distance.
+
+All neighbors of index `C` within distance `r` and bounds `R` get 
+value 1 and alpha channel varying from 1 at centre to 0 at r2. Parabolic variation.
+"""
+function spray_neighbors!(img::Matrix{GrayA{N0f8}}, R, C::CartesianIndex{2}, r)
+    # Pixel alpha function
+    f = let r = r, α_cen = r < 1 ? r : 1
+        (di, dj) -> α_cen - 0.8 * (di^2 + dj^2 ) / r^2
+    end
+    m = Int(floor(r))
+    for di in -m:m
+        for dj in -m:m
+            neighbor = CartesianIndex(C[1] + di, C[2] + dj)
+            if neighbor in R 
+                # Not outside image.
+                α1 = f(di, dj)
+                if α1 >= 0.2
+                    # We have a contribution for this pixel
+                    # What's here already?
+                    α0 = alpha(img[neighbor])
+                    if α0 <= oneunit(N0f8)
+                        img[neighbor] = GrayA{N0f8}(oneunit(N0f8), N0f8(min(1.0, α1 + float(α0))))
+                    end
+                end
+            end
+        end
+    end
+    img
+end
+=#
