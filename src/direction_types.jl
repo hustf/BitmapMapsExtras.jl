@@ -90,7 +90,12 @@ end
 
 
 """
-    DirectionAtXY
+    struct DirectionAtXY
+        did::DirectionInDomain
+        ny::NegateY
+        d::Domain
+        v::MVector{2, Float64}
+    end
 
 The object type we hand to the differential equation solver. 
 

@@ -27,7 +27,6 @@ if ! @isdefined grid_fcall
     end
 end
 
-
 if ! @isdefined background 
     function background(z; α = 0.6)
         foo = scaleminmax(extrema(z)...)
@@ -53,8 +52,30 @@ if ! @isdefined grid_fcall_with_background
         hi = (r + 1) + Δ * floor(Int,  r / Δ)
         rng = lo:Δ:hi
         grpts = CartesianIndices((rng, rng))
+        fcall_with_background(z, grpts, f)
+    end
+end
+
+if ! @isdefined fcall_with_background
+    function fcall_with_background(z, grpts, f)
         img = background(z)
-        # Call it
-        f(img, z, grpts)
+        fcall!(img, z, grpts, f)
+    end
+end
+
+if ! @isdefined fcall!
+    function fcall!(img, z, grpts, f)
+        if f isa Function
+            # Call it
+            f(img, z, grpts)
+        elseif f isa Vector{<:Function}
+            # Call the functions in turn
+            for i in eachindex(f)
+                f[i](img, z, grpts)
+            end
+        else
+            throw("f can either be a function or a vector of functions, not $(typeof(f)).")
+        end
+        img
     end
 end

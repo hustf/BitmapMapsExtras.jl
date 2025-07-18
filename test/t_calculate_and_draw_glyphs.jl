@@ -75,8 +75,19 @@ img = grid_fcall_with_background(; f, z = z_ridge_peak_valleys(), Δ = 50)
 @test hashstr(img) == "105ce8676076a128aa2636453b1bba315f4be2f0" 
 
 
-# Projected normal vector (less varied, more useful)
+# Projected normal vector (less varied in size, more useful)
 f = (img, z, grpts) -> plot_𝐧ₚ_glyphs!(img, z, grpts;
     multglyph = 5000, maxglyph = 50, dashsize = 0)
 img = grid_fcall_with_background(; f, z = z_ridge_peak_valleys(), Δ = 50) 
 @test hashstr(img) == "69a31c992dee85ed7b8c2b7776797b6af2596e95"
+
+
+###########################################################
+# Combined normal vector and principal curvature components
+###########################################################
+
+f1 = (img, z, grpts) -> plot_𝐧ₚ_glyphs!(img, z, grpts; multglyph = 100, maxglyph = 100)
+f2 = (img, z, grpts) -> plot_curvature_glyphs!(img, z, grpts; directions = 1:2, multglyph = 10000, minglyph = -50, maxglyph = 50)
+img = fcall_with_background(z_paraboloid(; a = 0.5r, b = -r), CartesianIndices((600:100:900, 500 .+ (-10:10:10))), f2)
+@test hashstr(img) == "95012548c94c7d28a2f94e9dd3c5beab7945b212"
+

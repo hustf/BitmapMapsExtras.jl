@@ -26,4 +26,5 @@ end
     @testset "streamlines" begin
         include("t_streamlines.jl")
     end
+    # Not included: t_streamlines_curvature.jl
 end

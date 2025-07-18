@@ -89,22 +89,34 @@ function z_sphere()
 end
 
 """
-    z_ellipsoid(; rel_half_axis = 0.5)
+    z_ellipsoid(; a = 0.45)
 
-An ellipsoid with its center in the xy-plane, major axis along y, and minor axis along x.
-The relative half-axis length `rel_half_axis` scales the y-axis (b = rel_half_axis * a).
-Principal curvature varies across the surface, becoming (0,0) outside the ellipse and (∞, 0) on edges.
+Height field `z(x,y)`` of an ellipsoid centred in the 'xy'‑plane, with its
+major half‑axis along 'y'. 
 
-The analytical expressions for curvatures are hard to implement, so not a good 
-choice for optimization.
+The single parameter `a ∈ [0, 0.5>` flattens the body additively:
+
+    ay = r                # unchanged
+    ax = r − a·r          # reduced once
+    az = r − 2a·r         # reduced twice
+
+`a = 0` gives a perfect sphere of radius `r`.
+
+Returns the surface height `z ≥ 0` inside the projected ellipse and `0`
+outside.
+
+The analytical expressions for curvatures are hard to implement, so this is not a good 
+choice for optimization of curvature estimation.
 """
-function z_ellipsoid(; rel_half_axis = 0.5)
+function z_ellipsoid(; a = 0.45)
+    @assert 0 ≤ a < 0.5  "a must lie in [0, 0.5> so that all half‑axes remain positive"
+    ay = r
+    ax = r - a * r          # x‑axis half‑length
+    az = r - 2a * r         # z‑axis half‑length
     map(R) do I
         y, x = (I - I0).I
-        a = r  # Major half-axis along y
-        b = rel_half_axis * a  # Minor half-axis along x
-        discriminant = r^2 - (y^2 / a^2 + x^2 / b^2) * r^2
-        sqrt(max(0, discriminant))
+        s = (y^2)/(ay^2) + (x^2)/(ax^2)
+        s ≥ 1 ? 0.0 : az * sqrt(1 - s)
     end
 end
 

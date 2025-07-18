@@ -21,6 +21,7 @@ This is our choice of convention:
 function components_matrix!(K, κ1, κ2, vβ)
     components_vector!(view(K, :, 1), κ1, vβ[1])
     components_vector!(view(K, :, 2), κ2, vβ[2])
+    K
 end
 
 """

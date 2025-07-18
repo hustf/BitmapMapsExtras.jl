@@ -218,8 +218,8 @@ end
 
 v is mutated: 
 
-    v[1]: x ("j")-component (columns) of 𝐧
-    v[2]: y ("-i")-component of (rows) of 𝐧, 
+    v[1]: x ("j")-component (columns) of 𝐧,
+    v[2]: y ("-i")-component of (rows) of 𝐧 
 
 Projection of 𝐧, the unit normal vector to the elevation surface z
 into the xy-plane (y is up).

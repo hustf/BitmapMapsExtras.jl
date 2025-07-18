@@ -64,17 +64,6 @@ function plot_streamline_gray!(bbuf, R, spts, r)
     bbuf
 end
 
-
-
-
-
-
-
-
-
-
-
-
 ############################
 # Callees for OrdinaryDiffEq
 ############################
