@@ -98,9 +98,7 @@ palette = RGB(0.467, 0.467, 0.467), RGB(0.957, 0.0, 0.078), RGB(0.0, 0.549, 0.0)
  4: Blue, convex-concave, hyperbolic
 """
 function color_point_by_curvature_type!(buf, z, pt, Ω, v, P, K, vα, vκ, vβ, maxcurv_flat, palette)
-    # Find P in-place
-    tangent_basis!(P, v, view(z, Ω .+ pt))
-    # Update K 
+    # Update K etc. 
     principal_curvature_components!(K, vα, vβ, vκ, P, view(z, Ω .+ pt), VΦ)
     # Color by curvature 
     color_point_by_curvature_type!(buf, pt,  K, maxcurv_flat, palette)

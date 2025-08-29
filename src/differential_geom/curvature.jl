@@ -7,7 +7,8 @@
 
 """
     principal_curvature_components(z::Matrix, pt::CartesianIndex)
-    principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ)
+
+Note that there is an alias 𝐊 for brevity.
 """
 function principal_curvature_components(z::Matrix, pt::CartesianIndex)
     Ri, Ω, v, P, K, vα, vκ, vβ, _ = allocations_curvature(CartesianIndices(z), [])
@@ -15,19 +16,33 @@ function principal_curvature_components(z::Matrix, pt::CartesianIndex)
         # Too close to edge of z    
         K .= NaN
     else
-        # Find P in-place
-        tangent_basis!(P, v, view(z, Ω .+ pt))
-        # Update K 
-        principal_curvature_components!(K, vα, vβ, vκ, P, view(z, Ω .+ pt), VΦ)
+        # Window 
+        win = view(z, Ω .+ pt)
+        # Update K etc. 
+        principal_curvature_components!(K, vα, vβ, vκ, P, win, VΦ)
     end
     K
 end
+
+
+"""
+    principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ)
+
+M is the 5x5 input
+vϕ are sample angles, normally the optimized values VΦ.
+
+K, vα, vβ, vκ and P are pre-allocated.
+
+Note that there is an alias 𝐊! for brevity.
+"""
 function principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ)
     @assert size(vα) == (4,)
     @assert size(vβ) == (2,)
     @assert size(vκ) == (4,)
     @assert size(P) == (3, 3)
     @assert size(M) == (5, 5)
+    # Find P in-place. vβ is a temporary storage here. 
+    tangent_basis!(P, vβ, M)
     # vϕ gives the sampling direction in the tangent plane
     # described by P. Sampling must be done in the screen plane,
     # since our data is an elevation matrix with indices as -y, x
@@ -41,7 +56,8 @@ function principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ)
     # Principal angles vβ in the yx (screen) plane. Note that ϕ1 and ϕ2 are 
     # orthonormal in the tangent plane, but not generally in the yx-plane
     angle_tangent_to_xy!(vβ, [ϕ1, ϕ1 + π / 2], P)
-    # Put the components of both vectors into matrix K
+    # Express curvatures κ and directions β as 4x4 matrix K.
+    # K is a second-order tensor's components in a screen-aligned basis.
     components_matrix!(K, κ1, κ2, vβ)
 end
 
@@ -209,6 +225,7 @@ Ensuring φₚ is in the correct branch of [0, 2π).
 1. https://en.wikipedia.org/wiki/Euler%27s_theorem_(differential_geometry)
 """
 function principal_curvature_and_direction(vκ::T, vϕ::T) where T <: SVector{4, Float64}
+    # TODO: Non-allocating, mutating version.
     @assert length(vκ) == length(vϕ) == 4
     # Construct design matrix M and solve M * [a; b; c] = vκ
     A = SMatrix{4, 3, Float64, 12}(hcat(ones(Float64, size(vϕ, 1)), cos.(2vϕ), sin.(2vϕ)))
@@ -229,7 +246,7 @@ end
 principal_curvature_and_direction(vκ, vϕ) = principal_curvature_and_direction(SVector{4, Float64}(vκ), SVector{4, Float64}(vϕ))
 
 """
-    allocations_curvature(R::CartesianIndices, directions; maxglyph = 50, minglyph = -50)
+    allocations_curvature(R::CartesianIndices, directions; maxg = 50, ming = -50)
 
 Allocate once, re-use at every point! This is re-used in calculations which require fewer 
 such containers than curvature.
@@ -255,7 +272,7 @@ typeof(vκ) = StaticArraysCore.MVector{4, Float64}
 typeof(vβ) = StaticArraysCore.MVector{2, Float64}
 f_is_within_limits isa Function, depending on argument directions.
 """
-function allocations_curvature(R::CartesianIndices, directions; maxglyph = 50, minglyph = -50)
+function allocations_curvature(R::CartesianIndices, directions; maxg = 50, ming = -50)
     @assert length(directions) <= 2
     # Define an internal domain Ri, since simple padding options
     # would not yield interesting curvature anyway.
@@ -280,7 +297,7 @@ function allocations_curvature(R::CartesianIndices, directions; maxglyph = 50, m
     # Principal and secondary principal angles. 
     vβ = MVector{2, Float64}(Array{Float64, 1}(undef, 2))
     #
-    f_is_within_limits = func_is_glyph_within_limits(directions, maxglyph, minglyph)
+    f_is_within_limits = func_is_glyph_within_limits(directions, maxg, ming)
     Ri, Ω, v, P, K, vα, vκ, vβ, f_is_within_limits
 end
 

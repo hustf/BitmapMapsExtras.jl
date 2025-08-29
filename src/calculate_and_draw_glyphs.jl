@@ -54,7 +54,7 @@ function plot_orthonormal_basis_glyph!(img, bbuf::Array{Gray{Bool}}, pt, P, half
         # Function converting Gray{Bool} to color index i
         f_color = x -> RGBA{N0f8}(RED_GREEN_BLUE[i, :]..., N0f8(x == 1))
         # Overlay bbuf on img in the proper color
-        map!(BlendLighten, img, img, f_color.(bbuf))
+        map!(BlendLighten, img, img, f_color.(bbuf)) # TODO Not here, move this out
     end
     img
 end
@@ -65,51 +65,56 @@ end
 #######################
 
 """
-    plot_curvature_glyphs(z, pts; directions = 1:2, multglyph = 50, minglyph = -50, maxglyph = 50)
+    plot_curvature_glyphs(z, pts; directions = 1:2, 
+        multip = 50, ming = -50, maxg = 50, 
+        strength = 0.7f0, rgb = COLOR_CURVGLYPH)
 """
-function plot_curvature_glyphs(z, pts; directions = 1:2, multglyph = 50, minglyph = -50, maxglyph = 50)
+function plot_curvature_glyphs(z, pts; directions = 1:2, 
+    multip = 50, ming = -50, maxg = 50, 
+    strength = 0.7f0, rgb = COLOR_CURVGLYPH)
     # Allocate an empty color image (since user didn't supply one)
     img = zeros(RGBA{N0f8}, size(z)...)
     # Modify the image
-    plot_curvature_glyphs!(img, z, pts; directions, multglyph, minglyph, maxglyph)
+    plot_curvature_glyphs!(img, z, pts; directions, multip, ming, maxg, strength, rgb)
 end
 
 """
     plot_curvature_glyphs!(img, z, pts; directions = 1:2, 
-        multglyph = 50, minglyph = -50, maxglyph = 50, dashsize = maxglyph ÷ 10)
+        multip = 50, ming = -50, maxg = 50, dashsize = maxg ÷ 10,
+        strength = 0.7f0, rgb = COLOR_CURVGLYPH)
 """
 function plot_curvature_glyphs!(img, z, pts; directions = 1:2, 
-    multglyph = 50, minglyph = -50, maxglyph = 50, dashsize = maxglyph ÷ 10)
-    # Black-white buffer
-    bbuf = Array{GrayA{N0f8}}(falses( size(img)...))
-    # Modify the image
-    plot_curvature_glyphs!(bbuf, img, z, pts, directions; multglyph, minglyph, maxglyph, dashsize)
+    multip = 50, ming = -50, maxg = 50, dashsize = maxg ÷ 10,
+    strength = 0.7f0, rgb = COLOR_CURVGLYPH)
+    # Coverage buffer
+    cov = zeros(Float32, size(img)...)
+    # Modify cover
+    plot_curvature_glyphs!(cov, z, pts, directions; 
+        multip, ming, maxg, dashsize, strength)
+    # Apply color by coverage
+    apply_color_by_coverage!(img, cov, rgb)
 end
 
 """
-    plot_curvature_glyphs!(bbuf, img, z, pts, directions; 
-        multglyph = 50, maxglyph = 50, minglyph = -50, dashsize = maxglyph ÷ 10)
+    plot_curvature_glyphs!(cov::Matrix{Float32}, z, pts, directions; 
+        multip = 50, maxg = 50, ming = -50, dashsize = maxg ÷ 10,
+        strength = 0.7f0)
 """
-function  plot_curvature_glyphs!(bbuf, img, z, pts, directions; 
-    multglyph = 50, maxglyph = 50, minglyph = -50, dashsize = maxglyph ÷ 10)
+function  plot_curvature_glyphs!(cov::Matrix{Float32}, z, pts, directions; 
+    multip = 50, maxg = 50, ming = -50, dashsize = maxg ÷ 10,
+    strength = 0.7f0)
     # Prepare
-    Ri, Ω, v, P, K, vα, vκ, vβ, f_is_within_limits = allocations_curvature(CartesianIndices(z), directions; maxglyph, minglyph)
+    Ri, Ω, v, P, K, vα, vκ, vβ, f_is_within_limits = allocations_curvature(CartesianIndices(z), directions; maxg, ming)
     # Plot curvature glyphs for internal points one at a time
     for pt in filter(pt -> pt ∈ Ri, sort(vec(pts)))
         # Find P in-place
         tangent_basis!(P, v, view(z, Ω .+ pt))
-        # Update K 
+        # Update K etc. 
         principal_curvature_components!(K, vα, vβ, vκ, P, view(z, Ω .+ pt), VΦ)
         # Scale and plot the single glyph
-        plot_principal_directions_glyph!(bbuf, pt, directions, f_is_within_limits, dashsize, multglyph * K)
+        plot_principal_directions_glyph!(cov, pt, directions, f_is_within_limits, dashsize, multip * K, strength)
     end
-    # Function converting GrayA{N0f8} to proper color
-    f = x -> RGBA{N0f8}(COLOR_CURVGLYPH.r, COLOR_CURVGLYPH.g, COLOR_CURVGLYPH.b, 
-                            x.val)
-    # Composite bbuf over img
-    # Overlay bbuf on img in the proper color
-    map!(BlendLighten, img, img, f.(bbuf))
-    img
+    cov
 end
 
 ####################################
@@ -118,40 +123,46 @@ end
 
 """
     plot_𝐧ₚ_glyphs(z, pts; 
-        multglyph = 50, minglyph = -50, maxglyph = 50, dashsize = maxglyph ÷ 10)
+        multip = 50, ming = -50, maxg = 50, dashsize = maxg ÷ 10)
 """
 function plot_𝐧ₚ_glyphs(z, pts; 
-    multglyph = 50, minglyph = -50, maxglyph = 50, dashsize = maxglyph ÷ 10)
+    multip = 50, ming = -50, maxg = 50, dashsize = maxg ÷ 10,
+    strength = 0.7f0, rgb = COLOR_CURVGLYPH)
     # Allocate an empty color image (since user didn't supply one)
     img = zeros(RGBA{N0f8}, size(z)...)
     # Modify the image
-    plot_𝐧ₚ_glyphs!(img, z, pts; multglyph, minglyph, maxglyph, dashsize)
+    plot_𝐧ₚ_glyphs!(img, z, pts; multip, ming, maxg, dashsize, strength, rgb)
 end
 
 """
     plot_𝐧ₚ_glyphs!(img, z, pts; 
-        multglyph = 50, minglyph = -50, maxglyph = 50, dashsize = maxglyph ÷ 10)
+        multip = 50, ming = -50, maxg = 50, dashsize = maxg ÷ 10)
 """
 function plot_𝐧ₚ_glyphs!(img, z, pts; 
-    multglyph = 50, minglyph = -50, maxglyph = 50, dashsize = maxglyph ÷ 10)
-    # Black-white buffer
-    bbuf = Array{GrayA{N0f8}}(falses( size(img)...))
-    # Modify the image
-    plot_𝐧ₚ_glyphs!(bbuf, img, z, pts; multglyph, minglyph, maxglyph, dashsize)
+    multip = 50, ming = -50, maxg = 50, dashsize = maxg ÷ 10,
+    strength = 0.7f0, rgb = COLOR_CURVGLYPH)
+    # Coverage buffer
+    cov = zeros(Float32, size(img)...)
+    # Modify coverage 
+    plot_𝐧ₚ_glyphs!(cov, z, pts; multip, ming, maxg, dashsize, strength)
+    # Apply color by coverage
+    apply_color_by_coverage!(img, cov, rgb)
 end
 
 """
-    plot_𝐧ₚ_glyphs!(bbuf, img, z, pts; 
-        multglyph = 50, maxglyph = 50, minglyph = -50, dashsize = maxglyph ÷ 10)
+    plot_𝐧ₚ_glyphs!(cov::Matrix{Float32}, z, pts; 
+        multip = 50, maxg = 50, ming = -50, dashsize = maxg ÷ 10, 
+        strength = 0.7f0)
 """
-function plot_𝐧ₚ_glyphs!(bbuf, img, z, pts; 
-        multglyph = 50, maxglyph = 50, minglyph = -50, dashsize = maxglyph ÷ 10)
+function plot_𝐧ₚ_glyphs!(cov::Matrix{Float32}, z, pts; 
+        multip = 50, maxg = 50, ming = -50, dashsize = maxg ÷ 10, 
+        strength = 0.7f0)
     # Allocate
     Ri, Ω, v, _, _, _, _, _, _ = allocations_curvature(CartesianIndices(z), [])
-    # Captures maxglyph and minglyph, limitations on vector length (negative limits
+    # Captures maxg and ming, limitations on vector length (negative limits
     # are irrelevant here)
-    f_is_within_limits = let minglyph = float(minglyph), maxglyph = float(maxglyph)
-        v -> minglyph ≤ norm(v) ≤ maxglyph
+    f_is_within_limits = let ming = float(ming), maxg = float(maxg)
+        v -> ming ≤ norm(v) ≤ maxg
     end
     # Plot projected vector glyphs for internal points one at a time
     for pt in filter(pt -> pt ∈ Ri, sort(vec(pts)))
@@ -159,15 +170,8 @@ function plot_𝐧ₚ_glyphs!(bbuf, img, z, pts;
         # v is in the format (dz/dx, dz/dy)
         𝐧ₚ!(v, view(z, Ω .+ pt))
         # Scale and plot the single glyph
-        plot_vector!(bbuf, pt, f_is_within_limits, dashsize, multglyph * v)
+        plot_vector!(cov, pt, f_is_within_limits, dashsize, multip * v, strength)
     end
-    # Function converting GrayA{N0f8} to proper color.
-    # CONSIDER TODO: Separate color constant for vectors.
-    #     Also, use mutable containers for color definitions.
-    f = x -> RGBA{N0f8}(COLOR_CURVGLYPH.r, COLOR_CURVGLYPH.g, COLOR_CURVGLYPH.b, 
-                            x.val)
-    # Composite bbuf over img
-    # Overlay bbuf on img in the proper color
-    map!(BlendLighten, img, img, f.(bbuf))
-    img
+    cov
 end
+

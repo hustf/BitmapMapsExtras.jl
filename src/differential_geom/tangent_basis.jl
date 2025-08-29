@@ -34,7 +34,7 @@ function tangent_basis(M)
 end
 
 """
-    tangent_basis!(P, M)
+    tangent_basis!(P, v, M)
 
 Mutating, see `tangent_basis`. Both P and v 
 are mutating, v is just an intermediatory to
@@ -42,15 +42,15 @@ reduce allocations.
 """
 function tangent_basis!(P, v, M)
     # Horizontal direction, r || x, z is out-of screen
-    r, z = tangent_unit_2d_vector!(v, dz_over_dx, M)
-    P[1, 1] = r
-    P[2, 1] = zero(r)
-    P[3, 1] = z
+    tangent_unit_2d_vector!(v, dz_over_dx, M)
+    P[1, 1] = v[1] # r
+    P[2, 1] = 0.0
+    P[3, 1] = v[2] # z
     # y direction, , r || y, z is out-of screen
-    r, z = tangent_unit_2d_vector!(v, dz_over_dy, M)
-    P[1, 2] = zero(r)
-    P[2, 2] = r
-    P[3, 2] = z
+    tangent_unit_2d_vector!(v, dz_over_dy, M)
+    P[1, 2] = 0.0
+    P[2, 2] = v[1] # r
+    P[3, 2] = v[2] # z
     # The first column, horizontal direction 𝐞₁ is kept, useful as an angular reference
     # since its y-component is zero.
     #
@@ -218,8 +218,8 @@ end
 
 v is mutated: 
 
-    v[1]: x ("j")-component (columns) of 𝐧,
-    v[2]: y ("-i")-component of (rows) of 𝐧 
+    v[1]: x ("j")-component (columns) of 𝐧ₚ,
+    v[2]: y ("-i")-component of (rows) of 𝐧ₚ 
 
 Projection of 𝐧, the unit normal vector to the elevation surface z
 into the xy-plane (y is up).
@@ -238,3 +238,31 @@ function 𝐧ₚ!(v, M)
     v
 end
 
+"""
+    𝐧ₚᵤ!(v, M)
+
+v is mutated: 
+
+    v[1]: x ("j")-component (columns) of 𝐧ₚᵤ,
+    v[2]: y ("-i")-component of (rows) of 𝐧ₚᵤ 
+
+Normalized projection of 𝐧, the normal vector to the elevation surface z
+into the xy-plane (y is up).
+
+M is a 5x5 view of the elevation surface z.
+
+Refers global const KERN1´  and KERN2´.
+KERN2´ values ensure that 'y is up'.
+"""
+function 𝐧ₚᵤ!(v, M)
+    dz_x = dz_over_dx(M)
+    dz_y = dz_over_dy(M)
+    mag = sqrt(dz_x^2 + dz_y^2)
+    if mag < MAG_EPS
+        v .= 0.0
+    else
+        v[1] = -dz_x / mag
+        v[2] = -dz_y / mag
+    end
+    v
+end

@@ -1,8 +1,12 @@
 """
     components_matrix!(K, κ1, κ2, vβ)
 
-Convert the signed scalar (κ) + angle (β) representation into a column vector per component. This is
-believed to require less trigonometric computations in further processing.
+Encode as κ1, κ2 and vβ as K.
+
+K is a 2x2 matrix. It contains a second-order tensor's components in a screen-aligned basis.
+
+Convert the signed scalar (κ) + angle (β) representation into a column vector per component. 
+This is believed to require less trigonometric computations in further processing.
 
 Note that due to symmetry, we only need 180° (i.e. π) to represent the direction. But we will
 give components in all four quadrants. The additional info is used to determine if the 
@@ -75,6 +79,3 @@ false
 ```
 """
 is_bidirec_vect_positive(v::AbstractVector) = !signbit(v[2])
-
-
-

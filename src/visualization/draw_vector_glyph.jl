@@ -6,26 +6,28 @@
 # One callee: `draw_vector!`
 
 """
-    plot_vector!(bbuf, pt, f_is_within_limits, dashsize, v)
+    plot_vector!(cov::Matrix{Float32}, pt, f_is_within_limits, dashsize, v, strength::Float32)
 
-This checks if the glyph is within limits. v is a (scaled for graphics) 2d vector,
-so `f_is_within_limits` would typically be this simple function:
+'v' is, awkwardly, expected to be in (x, y) coordinates. 
 
-    v -> minglyph ≤ norm(v) ≤ maxglyph
+`f_is_within_limits` would typically be this simple function:
+
+    v -> ming ≤ norm(v) ≤ maxg
 
 In keeping with similar plot functions, pt is v in 'image-space',
 where [1,2] is upper left, one pixel to the right.
 
-'v' is, awkwardly, in (x, y) coordinates. 
 """
-function plot_vector!(bbuf, pt, f_is_within_limits, dashsize, v)
+function plot_vector!(cov::Matrix{Float32}, pt, f_is_within_limits, dashsize, v, strength::Float32)
     if f_is_within_limits(v)
         Δj = Int(round(v[1]))
         Δi = -Int(round(v[2]))
-        draw_vector!(bbuf, pt, Δi, Δj)
+        draw_vector!(cov, pt, Δi, Δj, strength)
     else
-        # A dash instead of the out-of-limits vector glyph
-        spray_neighbors!(bbuf, CartesianIndices(bbuf), pt, dashsize)
+        if dashsize > 0
+            # A dash instead of the out-of-limits vector glyph
+            spray!(cov, pt, Float32(dashsize), strength)
+        end
     end
-    bbuf
+    cov
 end

@@ -20,14 +20,23 @@ Here we add other stuff. So far:
 - Draw principal directions glyphs
   
   For principal curvatures. In the tangent plane, these are orthornormal, but not in the drawing plane.
+
+- Glyph distribution
+
+  Grids of glyps, but also glyph-size based placement. The latter is work in progress.
   
 - Draw tangent basis planes
   
   For checking that the basis planes are reasonable.
   
-- Draw traces
-  
-  For streamplots of 2d vector-fields. Each streamline can add opacity, in order to visualize divergence
+- Paint surface type
+
+  For visualizing valleys and similar curvature-based features. May be dropped.
+
+- Streamlines
+
+  Traces for gradients, but also for lines of curvature. The latter is work in progress.
+
 
 
 ## Differential geometry functions
@@ -44,9 +53,21 @@ Here we add other stuff. So far:
 
   - Find traces starting at an ensemble of points
 
-  An ensemble might be a grid, uniformly random, or based on e.g. divergence (as in fluid flow) or previously drawn [hachures](https://andywoodruff.com/blog/hachures-and-sketchy-relief-maps/)  in an iterative approach. 
+  An ensemble might be a grid, uniformly random, or based on e.g. divergence (as in fluid flow) or previously drawn [hachures](https://andywoodruff.com/blog/hachures-and-sketchy-relief-maps/)  in an iterative approach. Work in progress.
 
   User supplies the vector-field function for the differential equation, typically from differential geometry. We solve the equation in non-discrete coordinates, which requires interpolation between the neighbouring points. We do this 'lazily', i.e. we only interpolate where needed and try to avoid memory allocations.
 
-  We're actually just wrapping some functionality from [OrdinaryDiffEq](https://docs.sciml.ai/OrdinaryDiffEq/stable/). The solutions are stored very effectively, so we finish finding the solutions before we start drawing traces.
-  
+  We're using [OrdinaryDiffEq](https://docs.sciml.ai/OrdinaryDiffEq/stable/). The solutions are stored very effectively, so we finish finding the solutions before we start drawing traces.
+
+
+## Current progress
+
+It's time to submit with updated dependencies.
+
+We are revising and improving on a user interface, i.e. the high-level functions. The somewhat unsatisfactory interfaces reside in `test/common.jl`. Some test files are not updated to the latest version of the interface. One idea for a high-level interface is to pass types like glyph specification into more general functions. `grid_fcall_with_background` etc. is not a nice way to do this. 
+
+`tangent_basis` has some minor allocations we should get rid of, but it may add more fields to some types.
+
+Glyph stacking is currently implemented, but in an inefficient manner. A new algorithm for stacking glyps is planned, but a requirement for that algorithm is to know
+the user's glyph specification in the stacking algorithm. Next up is to implement `glyphspec_types.jl` in `test/t_calculate_and_draw_glyphs`.
+

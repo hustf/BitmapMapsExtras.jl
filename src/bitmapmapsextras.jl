@@ -4,7 +4,7 @@ using BitmapMaps: scaleminmax00, line!, display_if_vscode, open_as_temp_in_imged
 import ImageFiltering
 import ImageFiltering.Kernel
 import ImageCore
-using ImageCore: N0f8, GrayA, RGBA, colormap, Gray, RGB, alpha
+using ImageCore: N0f8, GrayA, RGBA, colormap, Gray, RGB, Lab, alpha
 import StaticArrays
 using StaticArrays: SVector, MVector, MMatrix, SMatrix
 import LinearAlgebra
@@ -13,21 +13,26 @@ import ImageTransformations
 using ImageTransformations: recenter, center, RotMatrix, WarpedView
 import Interpolations
 using Interpolations: OnGrid, Flat, BSplineInterpolation
+using Interpolations: interpolate, BSpline, Linear
 import LinearSolve
 using LinearSolve: init, LinearProblem, solve!, NormalCholeskyFactorization
 using LinearSolve: OperatorCondition, OperatorAssumptions
 import ColorBlendModes
 using ColorBlendModes: BlendMode, BlendLighten, BlendHue, blend
+import ColorSchemes
+using ColorSchemes: ColorScheme
 import OffsetArrays
 using OffsetArrays: OffsetMatrix
-import Interpolations
-using Interpolations: interpolate, BSpline, Linear
+
 # For streamlines
 import OrdinaryDiffEq
-using OrdinaryDiffEq: ODEProblem, ContinuousCallback, CallbackSet
-using OrdinaryDiffEq: terminate!, Tsit5, solve
+using OrdinaryDiffEq: ODEProblem, ContinuousCallback, DiscreteCallback, CallbackSet
+using OrdinaryDiffEq: terminate!, Tsit5, solve, get_proposed_dt, init, solve!
+using OrdinaryDiffEq: remake, EnsembleThreads,  EnsembleSerial, EnsembleProblem
+import OrdinaryDiffEqCore
+using OrdinaryDiffEqCore: ODEIntegrator
 import SciMLBase
-using SciMLBase: ReturnCode.Success, ReturnCode.Terminated
+using SciMLBase: ReturnCode.Success, ReturnCode.Terminated, ReturnCode.DtLessThanMin
 #
 export tangent_basis # Add more at some later time, or use new public thing.
 
@@ -72,11 +77,36 @@ Low-effort definition of curvature glyph color, used where overlain a colorful p
 const COLOR_CURVGLYPH = RGB{N0f8}(0.85, 0.5, 0.9)
 
 """
-Low-effort definition of curvature types color, equal luminosity for good effect with BlendHue.
+Tinted grey, red, green, blue.
 """
 const PALETTE_GRGB = SVector{4, RGB{N0f8}}(
-    [RGB(0.467, 0.467, 0.467), RGB(0.957, 0.0, 0.078), RGB(0.0, 0.549, 0.0), RGB(0.0, 0.443, 1.0)])
+    [RGB(0.4785,0.5119,0.5096), RGB(0.957, 0.0, 0.078), RGB(0.0, 0.549, 0.0), RGB(0.0, 0.443, 1.0)])
 
+"""
+Close to grayscale, maximizes color distance to PALETTE_GRGB
+"""
+const PALETTE_BACKGROUND = ColorScheme([
+    RGB{N0f8}(0.004, 0.0, 0.008)
+    RGB{N0f8}(0.149, 0.075, 0.02)
+    RGB{N0f8}(0.325, 0.137, 0.004)
+    RGB{N0f8}(0.49, 0.216, 0.004)
+    RGB{N0f8}(0.612, 0.29, 0.043)
+    RGB{N0f8}(0.769, 0.373, 0.051)
+    RGB{N0f8}(0.969, 0.475, 0.016)
+    RGB{N0f8}(0.976, 0.518, 0.165)
+    RGB{N0f8}(0.976, 0.588, 0.329)
+    RGB{N0f8}(0.953, 0.678, 0.518)
+        ])
+
+
+"""
+Limit for meaningful vector normalization.
+"""
+const MAG_EPS = √(eps(Float64)) 
+
+
+
+const TENSORMAP = MMatrix{2, 2, Float64, 4}
 
 include("Test_matrices.jl")
 include("differential_geom/tangent_basis.jl")
@@ -86,10 +116,16 @@ include("visualization/draw_direct.jl")
 include("visualization/draw_bidirectional_glyph.jl")
 include("visualization/draw_plane.jl")
 include("visualization/draw_vector_glyph.jl")
-include("domain_types.jl")
-include("direction_types.jl")
+include("type_definitions/domain_types.jl")
+include("type_definitions/direction_types.jl")
+include("type_definitions/bidirection_types.jl")
+include("type_definitions/glyphspec_types.jl")
 include("calculate_and_draw_glyphs.jl")
 include("calculate_and_draw_streamlines.jl")
 include("calculate_and_paint_curvature_type.jl")
+include("tensormap_functions.jl")
+# Function aliases
+const 𝐊 = principal_curvature_components
+const 𝐊! = principal_curvature_components!
 
 end

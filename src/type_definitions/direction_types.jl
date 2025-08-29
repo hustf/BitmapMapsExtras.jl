@@ -5,10 +5,9 @@
  #
  # Defines types:
 
+ # DirectionAtXY (top level)
  # DirectionOnGrid
  # DirectionInDomain
- # DirectionAtXY 
- #  - the top-level abstraction containing the above as well as Domain and NegateY
 
 
 struct DirectionOnGrid
@@ -88,11 +87,12 @@ function direction_in_domain!(v, did::DirectionInDomain, x, negy)
     v
 end
 
+abstract type DirectionFunctor end
 
 """
-    struct DirectionAtXY
+    struct DirectionAtXY <: DirectionFunctor
         did::DirectionInDomain
-        ny::NegateY
+        negy::NegateY
         d::Domain
         v::MVector{2, Float64}
     end
@@ -105,25 +105,24 @@ This is a top-level abstraction encompassing the types
 
    DirectionOnGrid
    DirectionInDomain
-   DirectionAtXY 
    Domain 
    NegateY
 """
-struct DirectionAtXY
+struct DirectionAtXY <: DirectionFunctor
     did::DirectionInDomain
-    ny::NegateY
+    negy::NegateY
     d::Domain
     v::MVector{2, Float64}
 end
 # Constructor
 function DirectionAtXY(fdir!, z)
     did = DirectionInDomain(fdir!, z)
-    ny = NegateY(z)
+    negy = NegateY(z)
     R = CartesianIndices(z)
     Ω = CartesianIndices((-2:2, -2:2))
     d = Domain(R, Ω)
     v = MVector{2, Float64}([0, 0])
-    DirectionAtXY(did, ny, d, v)
+    DirectionAtXY(did, negy, d, v)
 end
 
 # Callable. y is positive up on screen. Returns [0.0,0.0]
@@ -131,7 +130,7 @@ end
 # stop calculation).
 function (daxy::DirectionAtXY)(x, y)
     if daxy.d(x, y)
-        direction_at_xy!(daxy.v, daxy.did, x, daxy.ny(y))
+        direction_at_xy!(daxy.v, daxy.did, x, daxy.negy(y))
     else
         # This occurs fairly often, though isn't presented as part of the solution.
         #printstyled("::DirectionAtXY(x, y) == ($x, $y) ∉ $(daxy.d) \n", color =:176)

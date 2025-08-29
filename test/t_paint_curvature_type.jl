@@ -8,7 +8,11 @@ include("common.jl")
 #################################
 # Curvature types, graphical test
 #################################
+# TODO: Switch to new 'grid_fcall_with_background' format.
 
+@testset "curvature types" begin
+
+r = TestMatrices.r
 
 f = (img, z, grpts) -> paint_curvature_types!(img, z, grpts;
     maxcurv_flat = 0.00002)
@@ -37,3 +41,5 @@ img = grid_fcall_with_background(; f, z = z_cylinder(1), Δ = 1)
 # Lower part of a cylinder. Convex
 img = grid_fcall_with_background(; f, z = -z_cylinder(π / 6), Δ = 1)
 @test hashstr(img) == "911d663925b9c0b156f82b432c4018c43b9f6212"
+
+end

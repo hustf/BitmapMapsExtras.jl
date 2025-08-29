@@ -2,6 +2,7 @@ using Test
 using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
 using BitmapMapsExtras: DirectionOnGrid, DirectionInDomain, DirectionAtXY, Domain
+using BitmapMapsExtras: DirectionFunctor
 using BitmapMapsExtras: direction_at_xy!, direction_on_grid!, direction_in_domain!
 using BitmapMapsExtras: 𝐧ₚ!, MVector, GrayA
 
@@ -49,6 +50,7 @@ end
 
 @testset "DirectionAtXY" begin
     daxy = DirectionAtXY(𝐧ₚ!, z)
+    @test daxy isa DirectionFunctor
     v = daxy(3.0, 3.0)
     @test v ≈ [0.09110987888453688, -0.9080563695155759]
     # Outside domain: zero everywhere, but no error thrown.

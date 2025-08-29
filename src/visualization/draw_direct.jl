@@ -1,14 +1,22 @@
-# Basis drawing functionality,
-# builds on `BitmapMaps.jl/mark_utils.jl`.
-# Contains `draw_vector!` and `spray_neighbors!`
+# Drawing functionality for partial coverage
+# Additional to `BitmapMaps.jl/mark_utils.jl`.
+#
+# Contains 
+# `draw_vector!` 
+# `draw_points!` 
+# `spray!`
+# `LogMapper`
+# `apply_color_by_coverage!`
 
 
 """
-    draw_vector!(img, A::CartesianIndex{2}, Δi, Δj)
+    draw_vector!(cov::Matrix{Float32}, A::CartesianIndex{2}, Δi, Δj,  strength::Float32)
 
-Draws a line from A to B in the given image, with a max thickness defined by `tol_dist`.
+Draws a line from A to B in the given coverage matrix, with a max thickness defined by `tol_dist`.
+
+See LogMapper for conversion.
 """
-function draw_vector!(img, A::CartesianIndex{2}, Δi::Int, Δj::Int)
+function draw_vector!(cov::Matrix{Float32}, A::CartesianIndex{2}, Δi::Int, Δj::Int, strength::Float32)
     #
     i1, j1 = Tuple(A)
     li = abs(Δi)
@@ -16,16 +24,19 @@ function draw_vector!(img, A::CartesianIndex{2}, Δi::Int, Δj::Int)
     si = sign(Δi)
     sj = sign(Δj)
     # Get all valid indices for the image
-    R = CartesianIndices(img)
+    R = CartesianIndices(cov)
     # Length
     l = hypot(Δi, Δj)
     # Max radius
-    rA = max(0.5, 0.075 * l)
-    rB = min(0.5, rA)
+    rA = Float32(max(0.5, 0.075 * l))
+    rB = min(0.5f0, rA)
     # Zero vector
     if Δi == 0 && Δj == 0
-        spray_neighbors!(img, R, CartesianIndex(i1, j1), rB)
-        return img
+        spray!(cov,
+                CartesianIndex(i1, j1),
+                rB,
+                strength)
+        return cov
     end
     # Non-zero vector
     if li > lj
@@ -35,21 +46,21 @@ function draw_vector!(img, A::CartesianIndex{2}, Δi::Int, Δj::Int)
         end
         err = li ÷ 2
         for i in 1:(li + 1)
-            if isnan(ρ(i))
-                @show  Δi  Δj rA rB li lj
-                throw("ah")
+            r = ρ(i)
+            if isnan(r)
+                @show  Δi  Δj rA rB li lj r
+                throw("ah NaN")
             end 
-            spray_neighbors!(img, R, CartesianIndex(i1, j1), ρ(i))
+            spray!(cov,
+                CartesianIndex(i1, j1),
+                r,
+                strength)
             err -= lj
             if err < 0
                 j1 += sj
                 err += li
             end
             i1 += si
-            if ρ(i) > 98
-                @show   Δi  Δj rA rB li lj
-                throw("Don't draw this thick")
-            end
         end
     else
         # Radius as a function of horizontal position
@@ -58,92 +69,140 @@ function draw_vector!(img, A::CartesianIndex{2}, Δi::Int, Δj::Int)
         end
         err = lj ÷ 2
         for i in 1:(lj + 1)
-            if isnan(ρ(i))
-                @show  Δi  Δj rA rB li lj
-                throw("ah")
+            r = ρ(i)
+            if isnan(r)
+                @show  Δi  Δj rA rB li lj r
+                throw("ah, what happened?")
             end 
-            spray_neighbors!(img, R, CartesianIndex(i1, j1), ρ(i) )
+            spray!(cov,
+                CartesianIndex(i1, j1),
+                r,
+                strength)
             err -= li
             if err < 0
                 i1 += si
                 err += lj
             end
             j1 += sj
-            if ρ(i) > 98
-                @show   Δi  Δj rA rB li lj
-                throw("Don't draw this thick")
-            end
         end
     end
-    img
+    cov
+end
+
+
+"""
+    draw_streamlines_points!(cov, spts, r::Float32, strength::Float32) 
+
+`spts` is a nested array of CartesianIndex{2}. The outer is a collection of points in each streamline.    
+
+The shape and ordering of streamlines do not currently matter,  but an extension might be
+used to convey some property.
+"""
+function draw_streamlines_points!(cov, spts, r::Float32, strength::Float32) 
+    @assert eltype(spts) <: Vector
+    for streamline in spts
+        draw_streamline_points!(cov, streamline, r, strength)
+    end
+    cov
 end
 
 """
-    spray_neighbors!(img::Matrix{GrayA{N0f8}}, R, C::CartesianIndex{2}, r)
-
-Spray the area around a pixel, alpha channel variation is parabolic with distance.
-
-All neighbors of index `C` within distance `r` and bounds `R` get 
-value 1 and alpha channel varying from 1 at centre to 0 at r2. Parabolic variation.
+    draw_streamline_points!(cov, spts::Vector{CartesianIndex{2}}, r::Float32, strength::Float32)
 """
-function spray_neighbors!(img::Matrix{GrayA{N0f8}}, R, C::CartesianIndex{2}, r)
-    # Pixel alpha function
-    f = let r = r, α_cen = r < 1 ? r : 1
-        (di, dj) -> α_cen - 0.8 * (di^2 + dj^2 ) / r^2
+function draw_streamline_points!(cov, spts::Vector{CartesianIndex{2}}, r::Float32, strength::Float32)
+    for pt in spts
+        spray!(cov, pt,  r, strength)
     end
-    m = Int(floor(r))
-    for di in -m:m
-        for dj in -m:m
-            neighbor = CartesianIndex(C[1] + di, C[2] + dj)
-            if neighbor in R 
-                # Not outside image.
-                α1 = f(di, dj)
-                if α1 >= 0.2
-                    # We have a contribution for this pixel
-                    # What's here already?
-                    α0 = alpha(img[neighbor])
-                    if α0 <= oneunit(N0f8)
-                        img[neighbor] = GrayA{N0f8}(oneunit(N0f8), N0f8(min(1.0, α1 + float(α0))))
-                    end
-                end
-            end
-        end
-    end
-    img
+    cov
 end
 
-#= OLD, works ok for vectors.
-"""
-    spray_neighbors!(img::Matrix{GrayA{N0f8}}, R, C::CartesianIndex{2}, r)
 
-Spray the area around a pixel, alpha channel variation is parabolic with distance.
-
-All neighbors of index `C` within distance `r` and bounds `R` get 
-value 1 and alpha channel varying from 1 at centre to 0 at r2. Parabolic variation.
 """
-function spray_neighbors!(img::Matrix{GrayA{N0f8}}, R, C::CartesianIndex{2}, r)
-    # Pixel alpha function
-    f = let r = r, α_cen = r < 1 ? r : 1
-        (di, dj) -> α_cen - 0.8 * (di^2 + dj^2 ) / r^2
+    spray!(cov::AbstractMatrix{Float32},
+                centre::CartesianIndex{2},
+                r::Float32,
+                strength::Float32)
+
+Accumulate one spray hit on the coverage buffer `cov`
+(a `Matrix{Float32}`).
+
+* `centre`   – CartesianIndex of the hit  
+* `r`        – radius ∈ (0, 7] (Float32)  
+* `strength` – ink load ≥ 0 
+
+Coverage added to each in‑circle pixel at offset (dx, dy):
+
+    w = strength * max(0, 1 - 0.8*(dx^2+dy^2)/r^2)
+
+This is modified for 0 < r < 1 to keep additional coverage roughly proportional to r^2.
+
+Returns the mutated `cov` (for chaining).
+"""
+function spray!(cov::AbstractMatrix{Float32},
+                centre::CartesianIndex{2},
+                r::Float32,
+                strength::Float32)
+    @assert 0f0 < r ≤ 100f0        "radius r must be in (0,100], is $r"
+    @assert strength ≥ 0f0         "strength must be non‑negative"
+    m   = Int(floor(r))
+    r2  = r^2
+    # Note that the number of pixels affected
+    # increases and decreases in rough steps with r.
+    # Compensate strength to make 
+    # applied coverage roughly linear with r.
+    strength_eff = strength * if r2 < 1f0
+        8 * r^3f0 
+    elseif r2 < 2
+        # at r = 1 , target  coverage 1.0 
+        # at r = √2, target coverage 2.66
+        0.645f0 * r^3f0 + 2.1f0 #1.0 * r^3f0 + 1.1f0
+    else
+        1f0 + r
     end
-    m = Int(floor(r))
-    for di in -m:m
-        for dj in -m:m
-            neighbor = CartesianIndex(C[1] + di, C[2] + dj)
-            if neighbor in R 
-                # Not outside image.
-                α1 = f(di, dj)
-                if α1 >= 0.2
-                    # We have a contribution for this pixel
-                    # What's here already?
-                    α0 = alpha(img[neighbor])
-                    if α0 <= oneunit(N0f8)
-                        img[neighbor] = GrayA{N0f8}(oneunit(N0f8), N0f8(min(1.0, α1 + float(α0))))
-                    end
-                end
-            end
-        end
+    r2min = (max(0f0, r - 2f0))
+    i₀, j₀ = Tuple(centre)
+    H,  W  = size(cov)
+    @inbounds for dy in -m:m, dx in -m:m
+        d2 = dx*dx + dy*dy
+        d2 > r2 && continue     # outside
+        d2 < r2min && continue  # skip centre
+        w = strength_eff * max(0, 1 - 0.8 * d2 / r2)
+        w ≤ 0f0 && continue
+        i  = clamp(i₀ + dy, 1, H)
+        j  = clamp(j₀ + dx, 1, W)
+        cov[i, j] += w
     end
-    img
+    cov
 end
-=#
+
+"""
+struct LogMapper{T}
+    scale::T
+    offset::T
+end
+
+When spraying we add hits linearly, which soon accumulates to more than one.
+Tweaking 'scale' and 'offset' affects if one will be able to distinguish between
+one, two or more hits.
+
+"""
+struct LogMapper{T}
+    scale::T
+    offset::T
+end
+# Default constructor
+LogMapper() = LogMapper(N0f8(1/log1p(10)), 0N0f8)
+# Callable
+@inline (lm::LogMapper{T})(c) where T = T(clamp((log1p(c) * lm.scale) + lm.offset, 0, 1))
+
+
+"""apply_color_by_coverage!(img, cov, rgb)"""
+function apply_color_by_coverage!(img, cov, rgb)
+    # Nonlinear 'coverage' {Float32} to alpha {N0f8}. Default values for now.
+    mapper = LogMapper()
+    f = x -> RGBA{N0f8}(rgb.r, rgb.g, rgb.b, mapper(x))
+    # Composite over img
+    img .= blend.(img, f.(cov))
+end
+
+

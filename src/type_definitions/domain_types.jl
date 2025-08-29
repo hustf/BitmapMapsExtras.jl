@@ -15,7 +15,7 @@ struct NegateY
 end
 NegateY(R::AbstractMatrix) = NegateY(size(R, 1) + 1)
 # Callable:
-(ny::NegateY)(y) = ny.originy - y
+(negy::NegateY)(y) = negy.originy - y
 
 # True if (x, y) lies within rectangular bounds defined by CartesianIndices,
 # with y measured from bottom (1) upwards

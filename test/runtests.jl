@@ -1,7 +1,11 @@
 using Test
-#using BitmapMapsExtras
-#using BitmapMapsExtras.TestMatrices
-@testset "differential_geom" begin
+@testset "BitmapMapsExtras" begin
+@testset "draw direct" begin
+    @testset "draw_direct" begin
+        include("t_draw_direct.jl")
+    end
+end
+@testset "differential geometry" begin
     @testset "tangent_basis" begin
         include("t_tangent_basis.jl")
     end
@@ -23,8 +27,12 @@ end
     @testset "direction types" begin
         include("t_direction_types.jl")
     end
+    @testset "bidirection types" begin
+        include("t_bidirection_types.jl")
+    end
     @testset "streamlines" begin
         include("t_streamlines.jl")
     end
-    # Not included: t_streamlines_curvature.jl
+    # Not included yet: t_streamlines_curvature.jl
+end
 end
