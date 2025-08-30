@@ -1,4 +1,14 @@
+import Pkg
+if ! haskey(Pkg.project().dependencies, "Random") 
+    @warn "For interactive tests: Use a test
+    environment outside of this package's /src/ and /test/ folder. 
+    The interactive test environment should `Pkg|> develop` BitmapMapsExtras, 
+    and `Pkg|> add` test dependencies listed in `test/Project.toml.
+    In VSCode, manually change the environment to that environment folder."
+end
 using Test
+
+
 @testset "BitmapMapsExtras" begin
 @testset "draw direct" begin
     @testset "draw_direct" begin
@@ -33,6 +43,8 @@ end
     @testset "streamlines" begin
         include("t_streamlines.jl")
     end
-    # Not included yet: t_streamlines_curvature.jl
+    @testset "streamlines curvature" begin
+        include("t_streamlines_curvature.jl")
+    end
 end
 end

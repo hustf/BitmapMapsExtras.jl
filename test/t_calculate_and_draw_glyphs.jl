@@ -11,10 +11,10 @@ import Random
 using Random: MersenneTwister
 import ImageContrastAdjustment
 using ImageContrastAdjustment: LinearStretching, ContrastStretching, adjust_histogram!
-import ImageMorphology
-using ImageMorphology: erode!
+#import ImageMorphology
+#using ImageMorphology: erode!
 
-include("common.jl")
+!@isdefined(hashstr) && include("common.jl")
 
 # Tangent basis
 z = z_paraboloid()

@@ -5,7 +5,7 @@ using BitmapMapsExtras: COLOR_CURVGLYPH, apply_color_by_coverage!
 
 # using UnicodePlots
 # using BenchmarkTools
-include("common.jl")
+!@isdefined(hashstr) && include("common.jl")
 
 
 ####################

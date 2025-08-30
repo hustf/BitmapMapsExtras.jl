@@ -3,43 +3,40 @@ using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
 using BitmapMapsExtras: paint_curvature_types!
 
-include("common.jl")
+!@isdefined(hashstr) && include("common.jl")
 
 #################################
 # Curvature types, graphical test
 #################################
-# TODO: Switch to new 'grid_fcall_with_background' format.
 
 @testset "curvature types" begin
 
 r = TestMatrices.r
-
-f = (img, z, grpts) -> paint_curvature_types!(img, z, grpts;
-    maxcurv_flat = 0.00002)
-
+f = paint_curvature_types!
 # All types
-img = grid_fcall_with_background(; f, z = z_ridge_peak_valleys(), Δ = 1)
-@test hashstr(img) == "98ed0c914b98ebda87efa0ba3cb58f7b53fed303" 
+args = (; maxcurv_flat = 0.00002)
+img = grid_fcall_with_background(f, args; z = z_ridge_peak_valleys(), Δ = 1)
+@test hashstr(img) == "4b908a01d21408e01dcf93736fd0df4374031e88"
 
 # All convex (red)
-img = grid_fcall_with_background(; f, z = z_paraboloid(; a= 0.6r, b = 0.5r), Δ = 1)
-@test hashstr(img) == "8f33c5a74801dbe4bbd9b1e8a3f909fa6507aa91"
+args = (;)
+img = grid_fcall_with_background(f, args; z = z_paraboloid(; a = 0.6r, b = 0.5r), Δ = 1)
+@test hashstr(img) == "a020b8a5f472f796cfd3fcbefe7e405a2cfd3d9b"
 
 # All concave  (green)
-# Slight difference between calculating in REPL and in test mode
-img = grid_fcall_with_background(; f, z = z_ellipsoid(), Δ = 1)
-hashstr(img) == "8e144c9b3fd1ed1279f9afec9c9eba21c64bcf41"
+img = grid_fcall_with_background(f, args; z = z_ellipsoid(), Δ = 1)
+@test hashstr(img) == "a71df781787f76b24121a78a7fde2d2e1313e599" 
 
 # All convex-concave, saddle (blue)
-img = grid_fcall_with_background(; f, z = z_paraboloid(;a= 0.6r, b = -0.4r), Δ = 1)
-@test hashstr(img) == "4f4ecc0d7f08ce57bdb29e814a41760c60a5ff6e"
+img = grid_fcall_with_background(f, args; z = z_paraboloid(;a= 0.6r, b = -0.4r), Δ = 1)
+@test hashstr(img) == "081a63c8c3177dd948541a10481372941ce6250f"
 
-# A cylinder. Concave.
-img = grid_fcall_with_background(; f, z = z_cylinder(1), Δ = 1)
-@test hashstr(img) == "9113d7dcda9f5845e3e924419b7e49cea7a2fc0b"
+# A cylinder. Concave (green).
+img = grid_fcall_with_background(f, args; z = z_cylinder(1), Δ = 1)
+@test hashstr(img) == "89d01a131a2e1bf6e66600850d89b8b2d4ac40c9"
 
-# Lower part of a cylinder. Convex
-img = grid_fcall_with_background(; f, z = -z_cylinder(π / 6), Δ = 1)
-@test hashstr(img) == "911d663925b9c0b156f82b432c4018c43b9f6212"
+# Lower part of a cylinder. Convex (red)
+img = grid_fcall_with_background(f, args; z = -z_cylinder(π / 6), Δ = 1)
+@test hashstr(img) == "d52953766db89bf022185a0c76ba19d5f7cd0939"
 
 end

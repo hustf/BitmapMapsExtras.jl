@@ -62,7 +62,7 @@ Here we add other stuff. So far:
 
 ## Current progress
 
-It's time to submit with updated dependencies.
+It's time to submit with a working test suite and a clean-up in testing dependencies. 
 
 We are revising and improving on a user interface, i.e. the high-level functions. The somewhat unsatisfactory interfaces reside in `test/common.jl`. Some test files are not updated to the latest version of the interface. One idea for a high-level interface is to pass types like glyph specification into more general functions. `grid_fcall_with_background` etc. is not a nice way to do this. 
 

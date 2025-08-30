@@ -6,7 +6,7 @@ using BitmapMapsExtras: DirectionFunctor
 using BitmapMapsExtras: direction_at_xy!, direction_on_grid!, direction_in_domain!
 using BitmapMapsExtras: 𝐧ₚ!, MVector, GrayA
 
-include("common.jl")
+!@isdefined(hashstr) && include("common.jl")
 
 #################
 # Low-level tests

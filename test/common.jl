@@ -4,21 +4,18 @@ import BitmapMapsExtras.BitmapMaps
 using BitmapMapsExtras.BitmapMaps: scaleminmax, RGBA, N0f8
 using BitmapMapsExtras:  PALETTE_BACKGROUND, Lab, RGB
 import BitmapMapsExtras.TestMatrices
-using SHA # Test dependency
+using SHA # Test dependency, temporarily added as a direct dependency.
 
-if ! @isdefined hashstr
-    function hashstr(img)
-        iob = IOBuffer()
-        show(iob, img)
-        bytes2hex(sha1(take!(iob)))
-    end
+function hashstr(img)
+    iob = IOBuffer()
+    show(iob, img)
+    bytes2hex(sha1(take!(iob)))
 end
 
 
 function background(z; α = 1.0)
     foo = scaleminmax(extrema(z)...)
     scaled_z = foo.(z)
-
     img = map(scaled_z) do z
         RGBA{N0f8}(get(PALETTE_BACKGROUND, z), α)
     end
@@ -123,16 +120,16 @@ function fcall(f!, vargs::T, img, z, grpts)  where T <: AbstractVector{<:Tuple{T
     if !isempty(vargs)
         for (pos, kwargs) in vargs
             if ! (pos isa Tuple{Nothing})
-                println("\nCalling $f!(img, z, grpts, $(pos...); kwargs = ($kwargs...))")
+                #println("\nCalling $f!(img, z, grpts, $(pos...); kwargs = ($kwargs...))")
                 f!(img, z, grpts, pos...; kwargs...)
             else
                 # Keyword arguments only
-                println("\nCalling $f!(img, z, grpts; kwargs = ($kwargs...))")
+                #println("\nCalling $f!(img, z, grpts; kwargs = ($kwargs...))")
                 f!(img, z, grpts; kwargs...)
             end
         end
     else
-        println("\nCalling `$f!(img, z, grpts)`")
+        #println("\nCalling `$f!(img, z, grpts)`")
         kwargs = (;)
         f!(img, z, grpts; kwargs...)
     end

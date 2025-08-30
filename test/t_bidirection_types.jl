@@ -6,7 +6,7 @@ using BitmapMapsExtras: DirectionFunctor, UnidirectionAtXY
 using BitmapMapsExtras: direction_at_xy!, direction_on_grid!, direction_in_domain!
 using BitmapMapsExtras: 𝐊!, MVector, MMatrix, GrayA, norm, reset!
 
-include("common.jl")
+!@isdefined(hashstr) && include("common.jl")
 radius = TestMatrices.r
 #################
 # Low-level tests
