@@ -1,7 +1,6 @@
 # Contains `principal_curvature_components` and it's non-allocating cousin, 
 # as well as supporting functions.
-# Also contains `allocations_curvature`, including glyph limits 
-# for visualization. 
+# Also contains `allocations_curvature`.
 # Relies on `tangent_basis.jl` and `bidirectional_quantity.jl`.
 # Relies on constants KERN´´, W, VΦ.
 
@@ -11,7 +10,7 @@
 Note that there is an alias 𝐊 for brevity.
 """
 function principal_curvature_components(z::Matrix, pt::CartesianIndex)
-    Ri, Ω, v, P, K, vα, vκ, vβ, _ = allocations_curvature(CartesianIndices(z), [])
+    Ri, Ω, v, P, K, vα, vκ, vβ = allocations_curvature(CartesianIndices(z))
     if ! (pt ∈ Ri)
         # Too close to edge of z    
         K .= NaN
@@ -52,6 +51,7 @@ function principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ)
     # Sample curvatures vκ
     sample_curvature_in_directions!(vκ, M, P, vα)
     # Calculations in the tangent plane
+    # TODO: Non-allocating version
     κ1, κ2, ϕ1 = principal_curvature_and_direction(vκ, vϕ)
     # Principal angles vβ in the yx (screen) plane. Note that ϕ1 and ϕ2 are 
     # orthonormal in the tangent plane, but not generally in the yx-plane
@@ -225,6 +225,7 @@ Ensuring φₚ is in the correct branch of [0, 2π).
 1. https://en.wikipedia.org/wiki/Euler%27s_theorem_(differential_geometry)
 """
 function principal_curvature_and_direction(vκ::T, vϕ::T) where T <: SVector{4, Float64}
+    #throw("I was called. Optimize. TODO")
     # TODO: Non-allocating, mutating version.
     @assert length(vκ) == length(vϕ) == 4
     # Construct design matrix M and solve M * [a; b; c] = vκ
@@ -246,10 +247,10 @@ end
 principal_curvature_and_direction(vκ, vϕ) = principal_curvature_and_direction(SVector{4, Float64}(vκ), SVector{4, Float64}(vϕ))
 
 """
-    allocations_curvature(R::CartesianIndices, directions; maxg = 50, ming = -50)
+    allocations_curvature(R::CartesianIndices)
 
-Allocate once, re-use at every point! This is re-used in calculations which require fewer 
-such containers than curvature.
+Allocate once, re-use at every point. This function is re-used in calculations 
+which require fewer such containers than curvature.
 
 # Arguments
 
@@ -258,7 +259,7 @@ directions    e.g. [] or [2] or [1, 2]
 
 # Output
 
-Ri, Ω, v, P, K, vα, vκ, vβ, f_is_within_limits
+Ri, Ω, v, P, K, vα, vκ, vβ
 
 where
 
@@ -270,10 +271,8 @@ typeof(K) = StaticArraysCore.MMatrix{2, 2, Float64, 4}
 typeof(vα) = StaticArraysCore.MVector{4, Float64}
 typeof(vκ) = StaticArraysCore.MVector{4, Float64}
 typeof(vβ) = StaticArraysCore.MVector{2, Float64}
-f_is_within_limits isa Function, depending on argument directions.
 """
-function allocations_curvature(R::CartesianIndices, directions; maxg = 50, ming = -50)
-    @assert length(directions) <= 2
+function allocations_curvature(R::CartesianIndices)
     # Define an internal domain Ri, since simple padding options
     # would not yield interesting curvature anyway.
     n = 5
@@ -297,7 +296,6 @@ function allocations_curvature(R::CartesianIndices, directions; maxg = 50, ming 
     # Principal and secondary principal angles. 
     vβ = MVector{2, Float64}(Array{Float64, 1}(undef, 2))
     #
-    f_is_within_limits = func_is_glyph_within_limits(directions, maxg, ming)
-    Ri, Ω, v, P, K, vα, vκ, vβ, f_is_within_limits
+    Ri, Ω, v, P, K, vα, vκ, vβ
 end
 

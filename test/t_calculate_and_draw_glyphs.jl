@@ -3,16 +3,15 @@ using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
 using BitmapMapsExtras: plot_tangent_basis_glyphs, plot_tangent_basis_glyphs!
 using BitmapMapsExtras: plot_curvature_glyphs, plot_curvature_glyphs!
-using BitmapMapsExtras: plot_𝐧ₚ_glyphs, plot_𝐧ₚ_glyphs!, PALETTE_GRGB
+using BitmapMapsExtras: plot_𝐧ₚ_glyphs!, PALETTE_GRGB
 using BitmapMapsExtras: BidirectionOnGrid, 𝐊!, Domain, TENSORMAP
+using BitmapMapsExtras: GSTensor, GSTangentBasis, GSVector
 import StatsBase
 using StatsBase: Weights, sample, norm
 import Random
 using Random: MersenneTwister
 import ImageContrastAdjustment
 using ImageContrastAdjustment: LinearStretching, ContrastStretching, adjust_histogram!
-#import ImageMorphology
-#using ImageMorphology: erode!
 
 !@isdefined(hashstr) && include("common.jl")
 
@@ -20,6 +19,20 @@ using ImageContrastAdjustment: LinearStretching, ContrastStretching, adjust_hist
 z = z_paraboloid()
 img = background(z)
 plot_tangent_basis_glyphs!(img, z, [CartesianIndex((315, 215))])
+
+
+# DEV /
+#=
+using BenchmarkTools
+# 36.886 ms (63 allocations: 12.50 MiB)
+@btime plot_tangent_basis_glyphs!(img, z, [CartesianIndex((315, 215))])
+
+@profview plot_tangent_basis_glyphs!(img, z, [CartesianIndex((315, 215))])
+
+@profview_allocs plot_tangent_basis_glyphs!(img, z, [CartesianIndex((315, 215))])
+=#
+# / DEV
+
 
 ########################################################
 # Format for 'args', argument to 
@@ -32,115 +45,112 @@ grid_fcall_with_background(plot_tangent_basis_glyphs!, args; z = z_sphere())
 args = nothing
 grid_fcall_with_background(plot_tangent_basis_glyphs!, args; z = z_paraboloid(a = TestMatrices.r, b = 0.25* TestMatrices.r ))
 # Case 9: Keywords
-args = (; halfsize = 40)
+args = (; gs = GSTangentBasis(;halfsize = 40))
 grid_fcall_with_background(plot_tangent_basis_glyphs!, args; z = z_cos())
 # Case 10: Vector of Nothing
 args = [nothing, nothing, nothing]
 grid_fcall_with_background(plot_tangent_basis_glyphs!, args; z = z_ellipsoid(; tilt = π / 6))
 # Case 11: Vector of keywords
-args = [(; halfsize = 35), (; halfsize = 40), (; halfsize = 45)]
+
+args = [(; gs = GSTangentBasis(;halfsize = 35)), (; gs = GSTangentBasis(;halfsize = 40)), (; gs = GSTangentBasis(;halfsize = 40))]
 grid_fcall_with_background(plot_tangent_basis_glyphs!, args; z = z_ridge_peak_valleys())
+
 args = nothing
 grid_fcall_with_background(plot_tangent_basis_glyphs!, args)
 
 
 
 # Projected normal vector
-args = (; multip = 100, maxg = 100)
+args = (; gs = GSVector(;multip = 100, maxg = 100))
 grid_fcall_with_background(plot_𝐧ₚ_glyphs!, args, z = z_cylinder_offset(π / 6), Δ = 50)
 
-args = (; multip = 500, maxg = 100, rgb = 0.5 * PALETTE_GRGB[3])
+args = (; gs = GSVector(multip = 500, maxg = 100, color = 0.5 * PALETTE_GRGB[3]))
 grid_fcall_with_background(plot_𝐧ₚ_glyphs!, args, z = z_ellipsoid(; tilt = π / 4), Δ = 50)
 
-args = (; multip = 100, maxg = 100)
+args = (; gs = GSVector(multip = 100, maxg = 100))
 grid_fcall_with_background(plot_𝐧ₚ_glyphs!, args, z = z_paraboloid())
 
-args = (; multip = 100, maxg = 100)
+args = (; gs = GSVector(multip = 100, maxg = 100))
 grid_fcall_with_background(plot_𝐧ₚ_glyphs!, args, z = z_paraboloid(; a = 500, b = 500))
 
-args = (; multip = 100, maxg = 100)
+args = (; gs = GSVector(multip = 100, maxg = 100))
 grid_fcall_with_background(plot_𝐧ₚ_glyphs!, args, z = z_sphere(), Δ = 50)
 
-args = (; multip = 50)
+args = (; gs = GSVector(multip = 50))
 grid_fcall_with_background(plot_𝐧ₚ_glyphs!, args, z = z_cos(), Δ = 75)
 
-args = (; multip = 50)
+args = (; gs = GSVector(multip = 50))
 grid_fcall_with_background(plot_𝐧ₚ_glyphs!, args, z = z_ridge_peak_valleys(), Δ = 25)
 
-args = (; multip = 50, rgb = 0.5 * PALETTE_GRGB[3])
+args = (; gs = GSVector(multip = 50, color = 0.5 * PALETTE_GRGB[3]))
 grid_fcall_with_background(plot_𝐧ₚ_glyphs!, args, z = -z_paraboloid(; a = 500, b = 40))
 
-args = (; multip = 50, rgb = 0.5 * PALETTE_GRGB[3])
+args = (; gs = GSVector(multip = 50, color = 0.5 * PALETTE_GRGB[3]))
 grid_fcall_with_background(plot_𝐧ₚ_glyphs!, args, z = z_exp3())
 
-
-
 # Curvature glyphs
-args = (; multip = 30000, rgb = 0.7 * PALETTE_GRGB[3])
+args = (; gs = GSTensor(;multip = 30000, color = PALETTE_GRGB[1])) 
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_ellipsoid(; tilt = π / 4), Δ = 50)
 
 # Curvature glyphs (separate colors)
-args = [(; directions = 1, multip = 12000, ming = -100, rgb = 0.7 * PALETTE_GRGB[3]),
-        (; directions = 2, multip = 12000, ming = -100, rgb = PALETTE_GRGB[4])]
+args = [(; gs = GSTensor(directions = 1, multip = 12000, color = PALETTE_GRGB[3])),
+        (; gs = GSTensor(directions = 2, multip = 12000, color = PALETTE_GRGB[4]))]
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_cylinder_offset(π / 6), Δ = 50)
 
-args = [(; directions = 1, multip = 50000, ming = -50, rgb = 0.7 * PALETTE_GRGB[3]),
-        (; directions = 2, multip = 50000, ming = -50, rgb = PALETTE_GRGB[4])]
+args = [(; gs = GSTensor(directions = 1, multip = 50000, color = PALETTE_GRGB[3], strength = 10)),
+        (; gs = GSTensor(directions = 2, multip = 50000, color = PALETTE_GRGB[4], strength = 10))]
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_ellipsoid(; tilt = π / 4), Δ = 50)
 
-args = [(; directions = 1,  multip = 15000, maxg = 250, rgb = 0.7 * PALETTE_GRGB[3]),
-        (; directions = 2,  multip = 15000, maxg = 250, rgb = PALETTE_GRGB[4])]
+args = [(; gs = GSTensor(directions = 1,  multip = 15000, maxg = 250, color = PALETTE_GRGB[3], strength = 10)),
+        (; gs = GSTensor(directions = 2,  multip = 15000, maxg = 250, color = PALETTE_GRGB[4], strength = 10))]
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_paraboloid())
 
-args = [(; directions = 1,  multip = 10000, maxg = 250, rgb = 0.7 * PALETTE_GRGB[3]),
-        (; directions = 2,  multip = 10000, maxg = 250, rgb = PALETTE_GRGB[4])]
+args = [(; gs = GSTensor(directions = 1,  multip = 10000, color = PALETTE_GRGB[3])),
+        (; gs = GSTensor(directions = 2,  multip = 10000, color = PALETTE_GRGB[4]))]
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_paraboloid(; a = 400, b = 600), Δ = 50)
 
-args = [(; multip = 12000, directions = 1, rgb = 0.7 * PALETTE_GRGB[3]),
-        (; multip = 12000, directions = 2, rgb = PALETTE_GRGB[4])]
+args = [(; gs = GSTensor(multip = 12000, directions = 1, color = PALETTE_GRGB[3])),
+        (; gs = GSTensor(multip = 12000, directions = 2, color = PALETTE_GRGB[4]))]
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_paraboloid())
 
-args = [(; multip = 12000, directions = 1, rgb = 0.7 * PALETTE_GRGB[3]),
-        (; multip = 12000, directions = 2, rgb = PALETTE_GRGB[4])]
+args = [(; gs = GSTensor(multip = 12000, directions = 1, color = PALETTE_GRGB[3])),
+        (; gs = GSTensor(multip = 12000, directions = 2, color = PALETTE_GRGB[4]))]
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_sphere(), Δ = 50)
 
-args = [(; multip = 5000, directions = 1, rgb = 0.7 * PALETTE_GRGB[3], maxg = 300),
-        (; multip = 5000, directions = 2, rgb = PALETTE_GRGB[4], ming = -300)]
+args = [(; gs = GSTensor(multip = 5000, directions = 1, color = PALETTE_GRGB[3], maxg = 300)),
+        (; gs = GSTensor(multip = 5000, directions = 2, color = PALETTE_GRGB[4], ming = -300))]
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_exp3(), Δ = 40)
 
-args = [(; multip = 25000, directions = 1, rgb = 0.7 * PALETTE_GRGB[3], maxg = 25, ming = -25),
-        (; multip = 25000, directions = 2, rgb = PALETTE_GRGB[4], maxg = 25, ming = -25)]
+args = [(; gs = GSTensor(multip = 25000, directions = 1, color = PALETTE_GRGB[3], maxg = 25, ming = -25)),
+        (; gs = GSTensor(multip = 25000, directions = 2, color = PALETTE_GRGB[4], maxg = 25, ming = -25))]
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_cos(;mult = 50), Δ = 15)
 
-args = (; multip = 4000)
+args = (; gs = GSTensor(multip = 4000))
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_ridge_peak_valleys(), Δ = 25)
 
-args = [(; multip = 7500, directions = 1, rgb = 0.99 * PALETTE_GRGB[3], maxg = 25, ming = -25),
-        (; multip = 7500, directions = 2, rgb = PALETTE_GRGB[4], maxg = 25, ming = -25)]
+args = [(; gs = GSTensor(multip = 7500, directions = 1, color = PALETTE_GRGB[3])),
+        (; gs = GSTensor(multip = 7500, directions = 2, color = PALETTE_GRGB[4]))]
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = -z_paraboloid(; a = 500, b = -300), Δ = 50)
 
 
 # Curvature glyphs, secondary (smallest value) direction only
-args = (; multip = 12000, ming = -30, directions = 2, rgb = 0.5 * PALETTE_GRGB[3])
+args = (; gs = GSTensor(multip = 12000, ming = -30, directions = 2, color = PALETTE_GRGB[3], strength = 10))
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_cylinder(π / 6), Δ = 50)
 
-args = (; multip = 10000, directions = 2, rgb = 0.2 * PALETTE_GRGB[3], ming = -30)
+args = (; gs = GSTensor(; multip = 10000, directions = 2, color = PALETTE_GRGB[3], ming = -30, strength = 10))
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_ellipsoid(; tilt = π / 4), Δ = 30)
 
-args = (; multip = 20000, directions = 2, rgb = 0.5 * PALETTE_GRGB[3])
+args = (; gs = GSTensor(; multip = 20000, directions = 2, color = PALETTE_GRGB[3], strength = 10))
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_paraboloid())
 
-args = (; multip = 10000, directions = 2, rgb = 0.5 * PALETTE_GRGB[3])
+args = (; gs = GSTensor(multip = 22000, directions = 2, color = PALETTE_GRGB[3], strength = 10))
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_paraboloid(; a = 500, b = 500))
 
-args = (; multip = 1000, directions = 2, rgb = 0.8 * PALETTE_GRGB[3], ming = -50)
+args = (; gs = GSTensor(multip = 1000, directions = 2, color = PALETTE_GRGB[3], ming = -50, strength = 10))
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_cos(), Δ = 15)
 
-args = (; multip = 4000, directions = 2, rgb = 0.5 * PALETTE_GRGB[3])
+args = (; gs = GSTensor(multip = 4000, directions = 2))
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_ridge_peak_valleys(), Δ = 25)
-
-
-
 
 function sidelength(K::TENSORMAP)
     2 * maximum(abs.(K))
@@ -219,8 +229,8 @@ end
 
 
 z = z_exp3()
-args = [(; multip = 5000, directions = 2, rgb = PALETTE_GRGB[4], ming = -300),
-        (; multip = 5000, directions = 1, rgb = PALETTE_GRGB[3], maxg = 300)]
+args = [(; gs = GSTensor(multip = 5000, directions = 2, color = PALETTE_GRGB[4], ming = -300)),
+        (; gs = GSTensor(multip = 5000, directions = 1, color = PALETTE_GRGB[3], maxg = 300))]
 begin
     img = background(z)
     dst_minval = 0.07
@@ -229,8 +239,8 @@ begin
 end
 
 z = z_cos(;mult = 50)
-args = [(; multip = 10000, directions = 1, rgb = PALETTE_GRGB[3], maxg = 300),
-        (; multip = 10000, directions = 2, rgb = PALETTE_GRGB[4], ming = -300)]
+args = [(; gs = GSTensor(multip = 10000, directions = 1, color = PALETTE_GRGB[3], maxg = 300)),
+        (; gs = GSTensor(multip = 10000, directions = 2, color = PALETTE_GRGB[4], ming = -300))]
 begin
     img = background(z)
     dst_minval = 0.03
@@ -241,8 +251,8 @@ end
 
 # The variation here is too large for this type of plot
 z = z_ridge_peak_valleys()
-args = [(; multip = 1000, directions = 1, rgb = PALETTE_GRGB[3], maxg = 30, ming = -30),
-        (; multip = 1000, directions = 2, rgb = PALETTE_GRGB[4], maxg = 30, ming = -30)]
+args = [(; gs = GSTensor(multip = 1000, directions = 1, color = PALETTE_GRGB[3], maxg = 30, ming = -30)),
+        (; gs = GSTensor(multip = 1000, directions = 2, color = PALETTE_GRGB[4], maxg = 30, ming = -30))]
 begin
     img = background(z)
     dst_minval = 0.03
@@ -253,8 +263,8 @@ end
 
 # TODO somehow limit the size by sending arguments to pts_for_glyphs
 z = z_ellipsoid(; tilt = π / 4)
-args = [(; multip = 1000, directions = 1, rgb = PALETTE_GRGB[3], maxg = 30, ming = -30),
-        (; multip = 1000, directions = 2, rgb = PALETTE_GRGB[4], maxg = 30, ming = -30)]
+args = [(; gs = GSTensor(multip = 1000, directions = 1, color = PALETTE_GRGB[3], maxg = 30, ming = -30)),
+        (; gs = GSTensor(multip = 1000, directions = 2, color = PALETTE_GRGB[4], maxg = 30, ming = -30))]
 begin
     img = background(z)
     dst_minval = 0.03

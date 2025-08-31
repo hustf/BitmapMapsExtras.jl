@@ -225,7 +225,7 @@ function is_pointing_roughly_perpendicular(uxy::UnidirectionAtXY, u0, u1, t)
     # Direction change is 
     # +/-48° < direction change <  +/- 138° 
     if -0.668 < dprod < 0.668
-        print("prim@$t  ")
+        #print("prim@$t  ")
         return true
     end
     false

@@ -21,14 +21,14 @@ struct BidirectionOnGrid{F, T}
 end
 # Constructor
 function BidirectionOnGrid(fdir!, z)
-    _, Ω, _, P, K, vα, vκ, vβ, _ = allocations_curvature(CartesianIndices(z), [])
+    _, Ω, _, P, K, vα, vκ, vβ, = allocations_curvature(CartesianIndices(z))
     BidirectionOnGrid(fdir!, z, Ω, vα, vβ, vκ, P, K)
 end
 # Callable, returns a tensormap K for the pixel or cell
 function (b::BidirectionOnGrid)(pt::CartesianIndex)
     b.fdir!(b.K, b.vα, b.vβ, b.vκ, b.P, view(b.z, b.Ω .+ pt), VΦ)::TENSORMAP
 end
-
+@define_show_with_fieldnames BidirectionOnGrid
 
 # Intermediate level
 struct BidirectionInDomain
@@ -51,7 +51,7 @@ function (bid::BidirectionInDomain)(x, negy)
     update_corners!(bid::BidirectionInDomain, i1, j1, i2, j2)
     interpolate_unit_square(bid.corners, x - j1, negy - i1)
 end
-
+@define_show_with_fieldnames BidirectionInDomain
 
 """
     struct BidirectionAtXY <: DirectionFunctor
@@ -84,7 +84,6 @@ function BidirectionAtXY(fdir!, z, primary::Bool)
     K = TENSORMAP(zeros(Float64, 2, 2))
     BidirectionAtXY(bid, negy, d, K, Ref{Bool}(primary), primary)
 end
-
 # Callable. The returned 2d vector is ambiguous, i.e. "180°-symmetric". 
 function (baxy::BidirectionAtXY)(x::Float64, y::Float64)
     if baxy.d(x, y)
@@ -100,6 +99,8 @@ function (baxy::BidirectionAtXY)(x::Float64, y::Float64)
         return baxy.K[:, 1]
     end
 end
+@define_show_with_fieldnames BidirectionAtXY
+
 
 
 
@@ -136,6 +137,9 @@ function (uxy::UnidirectionAtXY)(x::Float64, y::Float64)
     end
     uxy.du
 end
+@define_show_with_fieldnames UnidirectionAtXY
+
+
 # Resetting will not destroy the inherent z-data,
 # just prepare for integrating from a new starting point.
 function reset!(uxy::UnidirectionAtXY)

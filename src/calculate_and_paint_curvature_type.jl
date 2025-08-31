@@ -69,7 +69,7 @@ end
 
 function _paint_curvature_types!(buf, z, pts, maxcurv_flat, palette)
     # Prepare
-    Ri, Ω, v, P, K, vα, vκ, vβ, f_is_within_limits = allocations_curvature(CartesianIndices(z), [1, 2])
+    Ri, Ω, v, P, K, vα, vκ, vβ = allocations_curvature(CartesianIndices(z))
     # Color points one at a time, hopefully fast
     for pt in filter(pt -> pt ∈ Ri, sort(vec(pts)))
         color_point_by_curvature_type!(buf, z, pt, Ω, v, P, K, vα, vκ, vβ, maxcurv_flat, palette)
