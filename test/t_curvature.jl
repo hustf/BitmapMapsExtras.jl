@@ -11,3 +11,4 @@ CM = principal_curvature_components(z_cylinder(0), TestMatrices.I0)
 @test isapprox(CM, [-9.372522023933059e-5 0; 0 -0.0020051318513509423])
 @test isapprox(CM[1,1], 0, atol = 1e-4)
 @test isapprox(CM[2,2], -1 / TestMatrices.r, atol = 1e-5)
+

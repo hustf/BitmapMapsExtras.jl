@@ -59,6 +59,8 @@ extrema(z_paraboloid(;a= 5r, b=-5r))
 
 # Second run. TODO: Drop allocations in tangent basis (𝐊!)
 # 1.200752 seconds (3.45 M allocations: 1.399 GiB, 58.50% gc time)
+# 0.940869 seconds (2.50 M allocations: 1.322 GiB, 50.24% gc time)
+# 1.092556 seconds (2.23 M allocations: 1.310 GiB, 58.66% gc time)
 @time let 
     # This format is pretty complicated, but also powerful. 
     vargs = [((𝐊!, false, true),  (rgb = PALETTE_GRGB[3], r = 3f0, strength = 0.4f0)),
@@ -68,6 +70,8 @@ end
 
 # dtmax fixes errors where a trace loops back
 # 0.888065 seconds (9.56 M allocations: 1.749 GiB, 60.76% gc time, 1 lock conflict)
+# 3.064361 seconds (18.86 M allocations: 1.600 GiB, 20.63% gc time)
+# 2.845686 seconds (13.12 M allocations: 1.343 GiB, 22.42% gc time)
 @time let 
     vargs = [((𝐊!, false, true),  (rgb = PALETTE_GRGB[3], r = 1.5f0, strength = 0.4f0, dtmax = 1)),
             ((𝐊!, false, false), (rgb = PALETTE_GRGB[4], r = 1.5f0, strength = 0.4f0, dtmax = 1)), 

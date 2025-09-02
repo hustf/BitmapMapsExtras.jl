@@ -8,9 +8,10 @@
     principal_curvature_components(z::Matrix, pt::CartesianIndex)
 
 Note that there is an alias 𝐊 for brevity.
+Use the '!' methods where speed matters.
 """
 function principal_curvature_components(z::Matrix, pt::CartesianIndex)
-    Ri, Ω, v, P, K, vα, vκ, vβ = allocations_curvature(CartesianIndices(z))
+    Ri, Ω, v, P, K, vα, vκ, vβ, lpc = allocations_curvature(CartesianIndices(z))
     if ! (pt ∈ Ri)
         # Too close to edge of z    
         K .= NaN
@@ -18,14 +19,13 @@ function principal_curvature_components(z::Matrix, pt::CartesianIndex)
         # Window 
         win = view(z, Ω .+ pt)
         # Update K etc. 
-        principal_curvature_components!(K, vα, vβ, vκ, P, win, VΦ)
+        principal_curvature_components!(K, vα, vβ, vκ, P, win, VΦ, lpc)
     end
     K
 end
 
-
 """
-    principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ)
+    principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ, lpc)
 
 M is the 5x5 input
 vϕ are sample angles, normally the optimized values VΦ.
@@ -34,7 +34,7 @@ K, vα, vβ, vκ and P are pre-allocated.
 
 Note that there is an alias 𝐊! for brevity.
 """
-function principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ)
+function principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ, lpc)
     @assert size(vα) == (4,)
     @assert size(vβ) == (2,)
     @assert size(vκ) == (4,)
@@ -51,8 +51,10 @@ function principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ)
     # Sample curvatures vκ
     sample_curvature_in_directions!(vκ, M, P, vα)
     # Calculations in the tangent plane
-    # TODO: Non-allocating version
-    κ1, κ2, ϕ1 = principal_curvature_and_direction(vκ, vϕ)
+    κ1, κ2, ϕ1 = principal_curvature_and_direction(vκ, lpc)
+    @assert typeof(κ1) <: Float64
+    @assert typeof(κ2) <: Float64
+    @assert typeof(ϕ1) <: Float64
     # Principal angles vβ in the yx (screen) plane. Note that ϕ1 and ϕ2 are 
     # orthonormal in the tangent plane, but not generally in the yx-plane
     angle_tangent_to_xy!(vβ, [ϕ1, ϕ1 + π / 2], P)
@@ -73,39 +75,35 @@ function sample_curvature_in_directions!(vκ, M, P, vα)
     # in the plane intersected by α
     # ζ´ = -(cos(α) * 𝐧ₜₚ₁ + sin(α) * 𝐧ₜₚ₂) / 𝐧ₜₚ₃
     # Mutates vκ according to vα
-    map!(vκ, vα) do α
-        # Shorthand
-        c = cos(α)
-        s = sin(α)
-        #
-        # Regarding direction, consider the comments on flipping to a 
-        # right-handed situation below.
-        αl = α - π / 2 
-        # Define the transformation
-        tfm = recenter(RotMatrix(αl), center(M))
-        # Lazy rotated matrix.
-        Mr = WarpedView(M, tfm; fillvalue = Flat())
-        # Normal curvature and unit tangent vector in the 'matrix coordinate system',
-        # where when α = 0 : 
-        #           local axis lx points along increasing rows in the unrotated matrix (that is: down in an image).
-        #           Sampling from increasing rows can be much faster than sampling from decreasing rows because of how
-        #           memory access works.
-        #       when α = π / 4: 
-        #           local axis lx points along decreasing columns (that is: left in an image)
-        # First derivative, taken from the tangent plane
-        z´ = -(c * 𝐧ₜₚ₁ + s * 𝐧ₜₚ₂) / 𝐧ₜₚ₃
-        # Second derivative
-        z´´ = KERN´´ ⋅ Mr[W]
-        # Extrinsic curvature in this direction (from Kreyszig AEM)
-        κ =  z´´ / (1 + z´^2)^(3 / 2)
-        if isnan(κ)
-            @show z´ z´´ M 𝐧ₜₚ₁ 𝐧ₜₚ₂ 𝐧ₜₚ₃ P
-            @show Mr[W] α αl
-            throw(ErrorException("'Spurious' interpolation error "))
-        end
-        κ
-    end
+    vκ .= map(α -> sample_in_direction(α, M, 𝐧ₜₚ₁, 𝐧ₜₚ₂, 𝐧ₜₚ₃), vα)
     vκ
+end
+
+function sample_in_direction(α, M, 𝐧ₜₚ₁, 𝐧ₜₚ₂, 𝐧ₜₚ₃)
+    # Shorthand
+    c = cos(α)
+    s = sin(α)
+    #
+    # Regarding direction, consider the comments on flipping to a 
+    # right-handed situation below.
+    αl = α - π / 2 
+    # Define the transformation
+    tfm = recenter(RotMatrix(αl), center(M))
+    # Lazy rotated matrix.
+    Mr = WarpedView(M, tfm; fillvalue = Flat())
+    # Normal curvature and unit tangent vector in the 'matrix coordinate system',
+    # where when α = 0 : 
+    #           local axis lx points along increasing rows in the unrotated matrix (that is: down in an image).
+    #           Sampling from increasing rows can be much faster than sampling from decreasing rows because of how
+    #           memory access works.
+    #       when α = π / 4: 
+    #           local axis lx points along decreasing columns (that is: left in an image)
+    # First derivative, taken from the tangent plane
+    z´ = -(c * 𝐧ₜₚ₁ + s * 𝐧ₜₚ₂) / 𝐧ₜₚ₃
+    # Second derivative
+    z´´ = KERN´´ ⋅ Mr[W]
+    # Extrinsic curvature in this direction (from Kreyszig AEM)
+    z´´ / (1 + z´^2)^(3 / 2)
 end
 
 """
@@ -164,8 +162,8 @@ end
 
 
 """
-    principal_curvature_and_direction(vκ::T, vϕ::T) where T <: SVector{4, Float64}
-    principal_curvature_and_direction(vκ, vφ) 
+    principal_curvature_and_direction(vκ::T, lpc) where T <: SVector{4, Float64}
+    principal_curvature_and_direction(vκ, lpc) 
     -> (Float64, Float64, Float64)
 
 Compute the principal curvatures κ₁ ≥ κ₂ and the principal direction angle φₚ from three curvature samples.
@@ -199,7 +197,7 @@ where
          1  cos(2φ₄)  sin(2φ₄)]
       = hcat(ones(Float64, 4), cos.(2vφ), sin.(2vφ))
 
-and solve with an optimized equivalent to:
+which we solve with an optimized equivalent to:
 
     a, b, c = A \\ vκ
 
@@ -214,6 +212,7 @@ Ensuring φₚ is in the correct branch of [0, 2π).
 # Parameters
 - vκ    Three curvature samples κ(φᵢ)
 - vφ    Three angles φᵢ in the same tangent-plane frame
+- lpc   Linear problem reuseable cache
 
 # Returns
 - κ₁    Maximum principal curvature
@@ -224,15 +223,10 @@ Ensuring φₚ is in the correct branch of [0, 2π).
 # References
 1. https://en.wikipedia.org/wiki/Euler%27s_theorem_(differential_geometry)
 """
-function principal_curvature_and_direction(vκ::T, vϕ::T) where T <: SVector{4, Float64}
-    #throw("I was called. Optimize. TODO")
-    # TODO: Non-allocating, mutating version.
-    @assert length(vκ) == length(vϕ) == 4
-    # Construct design matrix M and solve M * [a; b; c] = vκ
-    A = SMatrix{4, 3, Float64, 12}(hcat(ones(Float64, size(vϕ, 1)), cos.(2vϕ), sin.(2vϕ)))
-    # Modify vκ to fit the equations
-    cache = init(LinearProblem{true}(A, vκ), NormalCholeskyFactorization(), OperatorAssumptions(false, condition=OperatorCondition.WellConditioned))
-    a, b, c = solve!(cache)
+function principal_curvature_and_direction(vκ::T, lpc) where T <: SVector{4, Float64}
+    # Update and solve A * [a; b; c] = vκ
+    lpc.b = vκ
+    a, b, c = solve!(lpc)
     # Principal‐curvature values from a, b, c
     r = hypot(b, c)       # faster than √(b^2 + c^2)
     κ1 = a + r            # maximum principal curvature
@@ -240,11 +234,22 @@ function principal_curvature_and_direction(vκ::T, vϕ::T) where T <: SVector{4,
     # First maximum of I) equals κ1 and occurs at (from differentiation)
     ϕp = atan(c, b) / 2
     if isnan(ϕp)
-        throw(ErrorException("Unexpected NaN: vκ, vϕ, a, b, c = $vκ $vϕ $a $b $c"))
+        throw(ErrorException("Unexpected NaN: vκ, a, b, c = $vκ $a $b $c"))
     end
     κ1, κ2, ϕp
 end
-principal_curvature_and_direction(vκ, vϕ) = principal_curvature_and_direction(SVector{4, Float64}(vκ), SVector{4, Float64}(vϕ))
+principal_curvature_and_direction(vκ, lpc) = 
+    principal_curvature_and_direction(SVector{4, Float64}(vκ), lpc)
+
+
+
+
+
+
+
+
+
+
 
 """
     allocations_curvature(R::CartesianIndices)
@@ -259,7 +264,7 @@ directions    e.g. [] or [2] or [1, 2]
 
 # Output
 
-Ri, Ω, v, P, K, vα, vκ, vβ
+Ri, Ω, v, P, K, vα, vκ, vβ, lpc
 
 where
 
@@ -271,8 +276,9 @@ typeof(K) = StaticArraysCore.MMatrix{2, 2, Float64, 4}
 typeof(vα) = StaticArraysCore.MVector{4, Float64}
 typeof(vκ) = StaticArraysCore.MVector{4, Float64}
 typeof(vβ) = StaticArraysCore.MVector{2, Float64}
+typeof(lpc) = LinearCache{...}
 """
-function allocations_curvature(R::CartesianIndices)
+function allocations_curvature(R::CartesianIndices; vϕ = VΦ)
     # Define an internal domain Ri, since simple padding options
     # would not yield interesting curvature anyway.
     n = 5
@@ -295,7 +301,14 @@ function allocations_curvature(R::CartesianIndices)
     vκ = MVector{4, Float64}(Array{Float64, 1}(undef, 4))
     # Principal and secondary principal angles. 
     vβ = MVector{2, Float64}(Array{Float64, 1}(undef, 2))
-    #
-    Ri, Ω, v, P, K, vα, vκ, vβ
+    # For finding which principal directions and size could 
+    # lead to our samples. We prepare by constructing a design matrix A
+    # and bake it into a cache for solving A * [a; b; c] = vκ.
+    # 
+    # See `principal_curvature_and_direction` regarding the equations.
+    A = SMatrix{4, 3, Float64, 12}(hcat(ones(Float64, size(vϕ, 1)), cos.(2vϕ), sin.(2vϕ)))
+    vκs = SVector{4, Float64}(Array{Float64, 1}(undef, 4))
+    lpc = init(LinearProblem{true}(A, vκs), NormalCholeskyFactorization(), OperatorAssumptions(false, condition=OperatorCondition.WellConditioned))
+    Ri, Ω, v, P, K, vα, vκ, vβ, lpc
 end
 

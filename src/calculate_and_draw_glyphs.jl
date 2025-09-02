@@ -26,7 +26,7 @@ end
     plot_tangent_basis_glyphs!(img, z, pts; gs = GSTangentBasis())
 """
 function plot_tangent_basis_glyphs!(img, z, pts; gs = GSTangentBasis())
-    Ri, Ω, v, P, _, _, _, _ = allocations_curvature(CartesianIndices(z))
+    Ri, Ω, v, P, _, _, _, _, _ = allocations_curvature(CartesianIndices(z))
     # Black-white buffer
     bbuf = Array{Gray{Bool}}(falses( size(img)...))
     # Plot tangent basis for internal points one at a time
@@ -85,13 +85,13 @@ function plot_curvature_glyphs!(img, z, pts; gs = GSTensor())
 end
 function  plot_curvature_glyphs!(cov::Matrix{Float32}, z, pts, gs::GSTensor)
     # Prepare
-    Ri, Ω, v, P, K, vα, vκ, vβ = allocations_curvature(CartesianIndices(z))
+    Ri, Ω, v, P, K, vα, vκ, vβ, lpc = allocations_curvature(CartesianIndices(z))
     # Plot curvature glyphs for internal points one at a time
     for pt in filter(pt -> pt ∈ Ri, sort(vec(pts)))
         # Find P in-place
         tangent_basis!(P, v, view(z, Ω .+ pt))
         # Update K etc. 
-        principal_curvature_components!(K, vα, vβ, vκ, P, view(z, Ω .+ pt), VΦ)
+        principal_curvature_components!(K, vα, vβ, vκ, P, view(z, Ω .+ pt), VΦ, lpc)
         # Scale and plot the single glyph
         plot_principal_directions_glyph!(cov, pt, K, gs)
     end
@@ -118,7 +118,7 @@ function plot_𝐧ₚ_glyphs!(img, z, pts; gs = GSVector())
 end
 function plot_𝐧ₚ_glyphs!(cov::Matrix{Float32}, z, pts; gs = GSVector())
     # Allocate
-    Ri, Ω, v, _, _, _, _, _ = allocations_curvature(CartesianIndices(z))
+    Ri, Ω, v, _, _, _, _, _, _ = allocations_curvature(CartesianIndices(z))
     # Plot projected vector glyphs for internal points one at a time
     plot_𝐧ₚ_glyphs!(cov, z, pts, Ri, Ω, v, gs)
     cov

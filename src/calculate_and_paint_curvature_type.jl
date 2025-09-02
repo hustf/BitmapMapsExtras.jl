@@ -69,18 +69,18 @@ end
 
 function _paint_curvature_types!(buf, z, pts, maxcurv_flat, palette)
     # Prepare
-    Ri, Ω, v, P, K, vα, vκ, vβ = allocations_curvature(CartesianIndices(z))
+    Ri, Ω, v, P, K, vα, vκ, vβ, lpc = allocations_curvature(CartesianIndices(z))
     # Color points one at a time, hopefully fast
     for pt in filter(pt -> pt ∈ Ri, sort(vec(pts)))
-        color_point_by_curvature_type!(buf, z, pt, Ω, v, P, K, vα, vκ, vβ, maxcurv_flat, palette)
+        color_point_by_curvature_type!(buf, z, pt, Ω, v, P, K, vα, vκ, vβ, lpc, maxcurv_flat, palette)
     end
     buf
 end
 
 
 """
-    color_point_by_curvature_type!(buf, z, pt, Ω, v, P, K, vα, vκ, vβ, maxcurv_flat, palette)
     color_point_by_curvature_type!(buf, pt,  K, maxcurv_flat, palette)
+    color_point_by_curvature_type!(buf, z, pt, Ω, v, P, K, vα, vκ, vβ, lpc, maxcurv_flat, palette)
 
 K is a 2x2 matrix with two bidirectional vectors, returned from `components_matrix!`.
 
@@ -97,9 +97,9 @@ palette = RGB(0.467, 0.467, 0.467), RGB(0.957, 0.0, 0.078), RGB(0.0, 0.549, 0.0)
  3: Green, concave
  4: Blue, convex-concave, hyperbolic
 """
-function color_point_by_curvature_type!(buf, z, pt, Ω, v, P, K, vα, vκ, vβ, maxcurv_flat, palette)
+function color_point_by_curvature_type!(buf, z, pt, Ω, v, P, K, vα, vκ, vβ, lpc, maxcurv_flat, palette)
     # Update K etc. 
-    principal_curvature_components!(K, vα, vβ, vκ, P, view(z, Ω .+ pt), VΦ)
+    principal_curvature_components!(K, vα, vβ, vκ, P, view(z, Ω .+ pt), VΦ, lpc)
     # Color by curvature 
     color_point_by_curvature_type!(buf, pt,  K, maxcurv_flat, palette)
     buf

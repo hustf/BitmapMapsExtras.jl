@@ -18,15 +18,16 @@ struct BidirectionOnGrid{F, T}
     vκ::MVector{4, Float64}
     P::MMatrix{3, 3, Float64, 9}
     K::MMatrix{2, 2, Float64, 4}
+    lpc::LinearCache
 end
 # Constructor
 function BidirectionOnGrid(fdir!, z)
-    _, Ω, _, P, K, vα, vκ, vβ, = allocations_curvature(CartesianIndices(z))
-    BidirectionOnGrid(fdir!, z, Ω, vα, vβ, vκ, P, K)
+    _, Ω, _, P, K, vα, vκ, vβ, lpc = allocations_curvature(CartesianIndices(z))
+    BidirectionOnGrid(fdir!, z, Ω, vα, vβ, vκ, P, K, lpc)
 end
 # Callable, returns a tensormap K for the pixel or cell
 function (b::BidirectionOnGrid)(pt::CartesianIndex)
-    b.fdir!(b.K, b.vα, b.vβ, b.vκ, b.P, view(b.z, b.Ω .+ pt), VΦ)::TENSORMAP
+    b.fdir!(b.K, b.vα, b.vβ, b.vκ, b.P, view(b.z, b.Ω .+ pt), VΦ, b.lpc)::TENSORMAP
 end
 @define_show_with_fieldnames BidirectionOnGrid
 
