@@ -1,7 +1,7 @@
 name = "BitmapMapsExtras"
 uuid = "91f7643b-a5d6-413a-971e-f956c21a1050"
 authors = ["hustf <hustf@users.noreply.github.com> and contributors"]
-version = "0.0.7"
+version = "0.0.8"
 
 [deps]
 BitmapMaps = "dcf5437e-85d8-460a-98f8-69920db83c61"
@@ -21,18 +21,3 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
-BitmapMaps = "0.4.0"
-ColorBlendModes = "0.2.4"
-ColorSchemes = "3.30.0"
-ImageCore = "0.10.5"
-ImageFiltering = "0.7.10"
-ImageTransformations = "0.10.2"
-Interpolations = "0.16.1"
-LinearAlgebra = "1.11.0"
-LinearSolve = "3.18.2"
-OffsetArrays = "1.17.0"
-OrdinaryDiffEq = "6.98.0"
-OrdinaryDiffEqCore = "1.30.0"
-SciMLBase = "2.103.0"
-StaticArrays = "1.9.13"
-StatsBase = "0.34.6"

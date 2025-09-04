@@ -54,7 +54,7 @@ function plot_orthonormal_basis_glyph!(img, bbuf::Array{Gray{Bool}}, pt, P, gs)
         # Function converting Gray{Bool} to color index i
         f_color = x -> RGBA{N0f8}(RED_GREEN_BLUE[i, :]..., N0f8(x == 1))
         # Overlay bbuf on img in the proper color
-        map!(BlendLighten, img, img, f_color.(bbuf)) # TODO Not here, move this out
+        map!(BlendLighten, img, img, f_color.(bbuf)) # Consider TODO Not here, move this out if speed is important
     end
     img
 end
@@ -76,14 +76,26 @@ function plot_curvature_glyphs(z, pts; gs = GSTensor())
     plot_curvature_glyphs!(img, z, pts; gs)
 end
 function plot_curvature_glyphs!(img, z, pts; gs = GSTensor())
-    # Coverage buffer
-    cov = zeros(Float32, size(img)...)
-    # Modify cover
-    plot_curvature_glyphs!(cov, z, pts, gs)
-    # Apply color by coverage
-    apply_color_by_coverage!(img, cov, gs.color)
+    if length(gs.directions) == 1
+        # Coverage buffer
+        cov = zeros(Float32, size(img)...)
+        # Modify cover
+        plot_curvature_glyphs!(cov, z, pts, gs)
+        # Apply color by coverage
+        color = first(gs.directions) == 1 ? gs.color1 : gs.color2
+        apply_color_by_coverage!(img, cov, color)
+    else
+        # Coverage buffers
+        vcov = [zeros(Float32, size(img)...), zeros(Float32, size(img)...)]
+        # Modify cover buffers
+        plot_curvature_glyphs!(vcov, z, pts, gs)
+        # Apply color by coverages
+        apply_color_by_coverage!(img, vcov[1], gs.color1)
+        apply_color_by_coverage!(img, vcov[2], gs.color2)
+    end
+    img
 end
-function  plot_curvature_glyphs!(cov::Matrix{Float32}, z, pts, gs::GSTensor)
+function  plot_curvature_glyphs!(cov::T, z, pts, gs::GSTensor) where T<:Union{Matrix{Float32}, Vector{Matrix{Float32}}}
     # Prepare
     Ri, Ω, v, P, K, vα, vκ, vβ, lpc = allocations_curvature(CartesianIndices(z))
     # Plot curvature glyphs for internal points one at a time
@@ -97,6 +109,8 @@ function  plot_curvature_glyphs!(cov::Matrix{Float32}, z, pts, gs::GSTensor)
     end
     cov
 end
+
+
 
 ####################################
 # Plot normal unit vector projection

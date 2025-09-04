@@ -10,15 +10,16 @@ struct GSTensor <: GlyphSpec
     maxg::Float64
     dashsize::Float32
     strength::Float32 # Graphical spray strength
-    color::RGB{N0f8}
+    color1::RGB{N0f8}
+    color2::RGB{N0f8}
     directions::UnitRange{Int64}
 end
 function GSTensor(;multip = 50, ming = -50, maxg = 50,
-    dashsize = Float32(maxg / 10), strength = 0.7f0, color = COLOR_CURVGLYPH,
-    directions = 1:2)
+    dashsize = Float32(maxg / 10), strength = 1f0, color1 = PALETTE_GRGB[3],
+    color2 = PALETTE_GRGB[4], directions = 1:2)
     #
     GSTensor(float(multip), float(ming), float(maxg), Float32(dashsize), Float32(strength),
-        color, to_range(directions))
+        color1, color2, to_range(directions))
 end
 to_range(x::Int64) = x:x
 to_range(x::UnitRange{Int64}) = x 

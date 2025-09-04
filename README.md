@@ -62,6 +62,8 @@ Here we add other stuff. So far:
 
 ## Current progress
 
+Version 0.0.8 adds a secondary color to the tensor basis glyph spec. Now, a two-color glyph can be drawn in one operation and faster.
+
 Version 0.0.7 pre-allocates the linear solver for curvature directions, and makes other minor speed improvements.
 
 We are revising and improving on a user interface, i.e. the high-level functions. The somewhat unsatisfactory interfaces reside in `test/common.jl`. Some test files are not updated to the latest version of the interface. One idea for a high-level interface is to pass types like glyph specification into more general functions. `grid_fcall_with_background` etc. is not a nice way to do this. 

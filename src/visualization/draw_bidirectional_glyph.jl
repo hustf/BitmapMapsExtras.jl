@@ -7,14 +7,16 @@
 
 """
     plot_principal_directions_glyph!(cov, pt, K, gs::GSTensor)
+    plot_principal_directions_glyph!(vcov::Vector{Matrix{Float32}}, pt, K, gs::GSTensor)
 
 Also see `draw_bidirectional_quantity_glyph!`
 """
 function plot_principal_directions_glyph!(cov, pt, K, gs::GSTensor)
+     @assert length(gs.directions) == 1
     # Extract primary and / or secondary principal components
-    #dK =  K[:, gs.directions]
     if is_in_limits(gs, K)
-        draw_bidirectional_quantity_glyph!(cov, pt, K, gs)
+        v = gs.multip .* view(K, :, first(gs.directions))
+        draw_bidirectional_quantity_glyph!(cov, pt, v, gs.strength)
     else
         # A dash instead of the out-of-limits glyph
         if gs.dashsize > 0
@@ -24,67 +26,78 @@ function plot_principal_directions_glyph!(cov, pt, K, gs::GSTensor)
     cov
 end
 
-
-
-
+function plot_principal_directions_glyph!(vcov::Vector{Matrix{Float32}}, pt, K, gs::GSTensor)
+     @assert gs.directions == 1:2
+     @assert length(vcov) == 2
+    # Extract primary and / or secondary principal components
+    if is_in_limits(gs, K)
+        v1 = gs.multip .* view(K, :, 1)
+        draw_bidirectional_quantity_glyph!(vcov[1], pt, v1, gs.strength)
+        v2 = gs.multip .* view(K, :, 2)
+        draw_bidirectional_quantity_glyph!(vcov[2], pt, v2, gs.strength)
+    else
+        # A dash instead of the out-of-limits glyph
+        if gs.dashsize > 0
+            spray!(vcov[1], pt, gs.dashsize, gs.strength)
+            spray!(vcov[2], pt, gs.dashsize, gs.strength)
+        end
+    end
+    vcov
+end
 
 
 """
-    draw_bidirectional_quantity_glyph!(cov, p, K, strength)
-    draw_bidirectional_quantity_glyph!(cov, p, v::AbstractVector, strength)
+    draw_bidirectional_quantity_glyph!(cov, p, v, strength)
 
-Draws two-arrow glyphs on an image at position `p` for principal bi-directional quantities
-specified by the matrix `K`.
+This function modifies `cov` in-place. Called by `plot_principal_directions_glyph!`
+
+Spray a two-arrow glyph 'v' on an image at position `p`.
 
 # Arguments
-- `cov`: The coverage matrix to render the glyphs onto.
-- `p`: The location of the glyphs in 2D space.
-- `K`: A principal bi-directional 4x4 matrix where `K[:,1]` specifies the first principal direction,
-  magnitude, and sign, and `K[:,2]` specifies the second. See [`draw_two_arrow_glyph!`](@ref).
-- `strength`: the maximum coverage applied to pixels
-
-# Details
-Due to symmetry, only 180° (π) is needed for the direction of each quantity. The additional
-information is used to determine if the quantity is negative (arrows toward `p`) or positive
-(arrows from `p`).
+- `cov`: The coverage matrix. Each element (pixel) accumulate coverage, how fast depends on strength.
+- `p`: The location of the glyph in 2D space.
+- `v`: A 2d vector. First and second quadrant: Positive sign. The opposite direction is always drawn, too. 
+    See [`draw_two_arrow_glyph!`](@ref).
+- `strength`: the maximum coverage applied to pixels per 'spray dash'. The centre is often hit with more such dashes.
 
 # Notes
-- As an example, 2D principal stress directions are always orthonormal, whereas in `K`, the
-  directions need not be orthonormal. If an orthonormal glyph is projected onto a plane that is
-  rotated with respect to the stress plane, the projected axes would not be orthonormal. This
-  function could be used to draw such a projection.
-- This function modifies `img` in-place.
+- Due to symmetry, only 180° (π) is needed for the direction of each quantity. The additional
+information is used to determine if the quantity is negative (arrows toward `p`) or positive
+(arrows from `p`).
+-If an orthonormal glyph (representing e.g. planar stress or surface curvature) is projected onto a plane that is
+  rotated with respect to the (stress, curvature) plane, the projected axes will not be orthonormal. Each principal 
+  component is still 180° symmetric.
+- The sign convention for the y-axis is what it is... See the example.
 
 # Examples
 ```julia
-img = zeros(100, 100)  # Example image matrix
-p = [50.0, 50.0]       # Center position
-K = rand(4, 4)         # Example principal bi-directional matrix
-draw_bidirectional_quantity_glyph!(img, p, K)  # Draws two glyphs
+julia> begin # The shape is hardly visble on this small scale.
+    cov = zeros(Float32, 11, 11); # Example coverage matrix
+    p = CartesianIndex((6, 6))    # Center position
+    v = [4.75, 3.75]              # Example bi-directional vector
+    strength = 0.5f0
+    draw_bidirectional_quantity_glyph!(cov, p, v, strength)
+end
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.5
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.5  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.5  0.5  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.5  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  1.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.5  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.5  0.5  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.5  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.5  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
 ```
 """
-function draw_bidirectional_quantity_glyph!(cov, p, K, gs)
-    @assert size(K) == (2, 2)
-    if 1 ∈ gs.directions
-        draw_two_arrow_glyph!(cov, p, gs.multip .* view(K, :, 1), gs.strength)
-    end
-    if 2 ∈ gs.directions
-        draw_two_arrow_glyph!(cov, p, gs.multip .* view(K, :, 2), gs.strength)
-    end
-    cov
-end
-function draw_bidirectional_quantity_glyph!(cov, p, v::AbstractVector, gs)
-    throw("Dead")
-    @assert size(v, 1) == 2
-    draw_two_arrow_glyph!(cov, p, gs.multip .* v, strength)
-end
+draw_bidirectional_quantity_glyph!(cov, p, v, strength) =  draw_two_arrow_glyph!(cov, p, v, strength)
 
 """
     draw_two_arrow_glyph!(cov, p, v::AbstractVector, strength::Float32)
 
-img is the image matrix
-p is the location
-F is the length of both arrows. If negative, arrows end at p.
+See `draw_bidirectional_quantity_glyph!`.
+
 v[1:2] specifies both direction and sign. 
     0-π:  Positive sign, arrows outward.   
     π-2π: Negative sign: arrows inward.   
