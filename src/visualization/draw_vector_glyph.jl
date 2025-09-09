@@ -19,6 +19,7 @@ where [1,2] is upper left, one pixel to the right.
 
 """
 function plot_vector!(cov::Matrix{Float32}, pt, f_is_within_limits, dashsize, v, strength::Float32)
+    throw("dead")
     if f_is_within_limits(v)
         Δj = Int(round(v[1]))
         Δi = -Int(round(v[2]))

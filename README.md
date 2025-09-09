@@ -62,6 +62,8 @@ Here we add other stuff. So far:
 
 ## Current progress
 
+Version 0.0.9 outlines (currently in `test/t_calculate_and_draw_glyphs.jl`) a method to densely pack tensormap glyphs.
+
 Version 0.0.8 adds a secondary color to the tensor basis glyph spec. Now, a two-color glyph can be drawn in one operation and faster.
 
 Version 0.0.7 pre-allocates the linear solver for curvature directions, and makes other minor speed improvements.

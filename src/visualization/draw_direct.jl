@@ -12,9 +12,13 @@
 """
     draw_vector!(cov::T, A::CartesianIndex{2}, Δi, Δj,  strength::Float32) where T<:AbstractMatrix{Float32}
 
-Draws a line from A to B in the given coverage matrix, with a max thickness defined by `tol_dist`.
+Draws a line from A to B in the given coverage matrix. Edges are blurry. At A, maximum radius is 
 
-See LogMapper for conversion.
+    `VECTOR_REL_HALFWIDTH` * `l`
+
+where `l` = √(Δi²+Δj²). 
+
+See LogMapper for conversion of `cov`` to an image.
 """
 function draw_vector!(cov::T, A::CartesianIndex{2}, Δi::Int, Δj::Int, strength::Float32) where T<:AbstractMatrix{Float32}
     #
@@ -28,7 +32,7 @@ function draw_vector!(cov::T, A::CartesianIndex{2}, Δi::Int, Δj::Int, strength
     # Length
     l = hypot(Δi, Δj)
     # Max radius
-    rA = Float32(max(0.5, 0.075 * l))
+    rA = Float32(max(0.5, VECTOR_REL_HALFWIDTH * l))
     rB = min(0.5f0, rA)
     # Zero vector
     if Δi == 0 && Δj == 0
@@ -196,7 +200,9 @@ LogMapper() = LogMapper(N0f8(1/log1p(10)), 0N0f8)
 @inline (lm::LogMapper{T})(c) where T = T(clamp((log1p(c) * lm.scale) + lm.offset, 0, 1))
 
 
-"""apply_color_by_coverage!(img, cov, rgb)"""
+"""
+    apply_color_by_coverage!(img, cov, rgb
+"""
 function apply_color_by_coverage!(img, cov, rgb)
     # Nonlinear 'coverage' {Float32} to alpha {N0f8}. Default values for now.
     mapper = LogMapper()

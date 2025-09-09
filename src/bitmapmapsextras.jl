@@ -105,7 +105,8 @@ Limit for meaningful vector normalization.
 const MAG_EPS = √(eps(Float64)) 
 
 
-
+const VECTOR_REL_HALFWIDTH = 0.075
+# Type alias
 const TENSORMAP = MMatrix{2, 2, Float64, 4}
 
 include("Test_matrices.jl")

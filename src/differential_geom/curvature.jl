@@ -35,6 +35,20 @@ K, vα, vβ, vκ and P are pre-allocated.
 Note that there is an alias 𝐊! for brevity.
 """
 function principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ, lpc)
+    _, κ1, κ2 = principal_curvatures_and_angles!(vβ, vα, vκ, P, M, vϕ, lpc)
+    # Express curvatures κ and directions β as 4x4 matrix K.
+    # K is a second-order tensor's components in a screen-aligned basis.
+    components_matrix!(K, κ1, κ2, vβ)
+end
+
+"""
+    principal_curvatures_and_angles!(vβ, vα, vκ, P, M, vϕ, lpc)
+    --> vβ, κ1, κ2
+
+Internal function.
+vβ is modified in-place. So is vα, vκ, P and lpc. A bit of a mess, really.
+"""
+function principal_curvatures_and_angles!(vβ, vα, vκ, P, M, vϕ, lpc)
     @assert size(vα) == (4,)
     @assert size(vβ) == (2,)
     @assert size(vκ) == (4,)
@@ -58,9 +72,7 @@ function principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ, lpc)
     # Principal angles vβ in the yx (screen) plane. Note that ϕ1 and ϕ2 are 
     # orthonormal in the tangent plane, but not generally in the yx-plane
     angle_tangent_to_xy!(vβ, [ϕ1, ϕ1 + π / 2], P)
-    # Express curvatures κ and directions β as 4x4 matrix K.
-    # K is a second-order tensor's components in a screen-aligned basis.
-    components_matrix!(K, κ1, κ2, vβ)
+    vβ, κ1, κ2 
 end
 
 """

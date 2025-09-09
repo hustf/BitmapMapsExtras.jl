@@ -5,11 +5,16 @@ using BitmapMapsExtras: plot_tangent_basis_glyphs, plot_tangent_basis_glyphs!
 using BitmapMapsExtras: plot_curvature_glyphs, plot_curvature_glyphs!
 using BitmapMapsExtras: plot_𝐧ₚ_glyphs!, PALETTE_GRGB
 using BitmapMapsExtras: BidirectionOnGrid, 𝐊!, Domain, TENSORMAP
-using BitmapMapsExtras: GSTensor, GSTangentBasis, GSVector
+using BitmapMapsExtras: GSTensor, GSTangentBasis, GSVector, GlyphSpec
+using BitmapMapsExtras: is_in_limits, MAG_EPS, VECTOR_REL_HALFWIDTH
+using BitmapMapsExtras: is_bidirec_vect_positive
+using BitmapMapsExtras.BitmapMaps: mark_at!
+
+
 import StatsBase
 using StatsBase: Weights, sample, norm
 import Random
-using Random: MersenneTwister
+using Random: MersenneTwister, randperm
 import ImageContrastAdjustment
 using ImageContrastAdjustment: LinearStretching, ContrastStretching, adjust_histogram!
 
@@ -153,123 +158,288 @@ grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_cos(), Δ = 15)
 args = (; gs = GSTensor(multip = 4000, directions = 2))
 grid_fcall_with_background(plot_curvature_glyphs!, args, z = z_ridge_peak_valleys(), Δ = 25)
 
-function sidelength(K::TENSORMAP)
-    2 * maximum(abs.(K))
-end
-# Fallback
-sidelength(glyphspec) = throw("unsupported for now: $(typeof(glyphspec))")
+# Smartly spaced glyphs
+"""
+    potential_scattered_placements(R::CartesianIndices; avgdist = 10, seed = MersenneTwister(123))
+    --> Vector{CartesianIndex}
 
-function side_for_glyph(z)
-    obj = BidirectionOnGrid(𝐊!, z)
-    d = Domain(TestMatrices.R, CartesianIndices((-2:2, -2:2)))
-    glyph_side = map(CartesianIndices(z)) do I
-        if d(I.I...)
-            sidelength(obj(I))
-        else
-            0.0
+Return a vector of random CartesianIndex scattered within `R` such that the
+mean nearest-neighbour distance is approximately `avgdist`. Refer Poisson disk sampling.
+
+# Arguments
+
+- `R` defines the possible values of each returned index. 
+- `avgdist` (default keyword value 10.0) is the mean nearest-neighbour distance between points. The 
+    resulting set of points will vary slightly from this target.
+"""
+function potential_scattered_placements(R::CartesianIndices; avgdist = 10.0, seed = MersenneTwister(123))
+    area = length(R)
+    # Estimate number of points, within bounds.
+    n = max(1, min(round(Int, area / (4 * avgdist^2)), area))
+    # Draw random unique indices
+    chosen = randperm(seed, area)[1:n]
+    [R[i] for i in chosen]
+end
+
+function potential_scattered_placements(fz, gs::GlyphSpec; scatterdist = gs.dashsize, seed = MersenneTwister(123))
+    @assert hasfield(typeof(fz), :z)
+    @assert hasfield(typeof(fz), :Ω)
+    R = CartesianIndices(fz.z)
+    Ω = fz.Ω
+    minj = R[1][2] - Ω[1][2]
+    maxi = R[end][1] - Ω[end][2]
+    maxj = R[end][2] - Ω[end][2]
+    mini = R[1][1] - Ω[1][2]
+    Ri = CartesianIndices((mini:maxi, minj:maxj))
+    potential_scattered_placements(Ri; avgdist = scatterdist, seed)
+end
+
+
+
+@test potential_scattered_placements(CartesianIndices((9, 9)), avgdist = 1.41) == CartesianIndex.([(1, 7),
+       (1, 1),
+       (3, 7),
+       (6, 1),
+       (7, 4),
+       (7, 7),
+       (5, 5),
+       (8, 4),
+       (5, 6),
+       (2, 7)])
+
+function required_radius_for_plotting(gs::GSTensor, K)
+     @assert gs.directions == 1:2 "One direction not implemented. "
+    # Extract the half-length of primary and secondary principal direction
+    # glyphs
+    if is_in_limits(gs, K)
+        K1 = @view K[:, 1]
+        K2 = @view K[:, 2]
+        l1 = norm(K1) * gs.multip
+        l2 = norm(K2) * gs.multip
+    else
+        l1 = 0.0
+        l2 = 0.0
+    end
+    max(l1, l2) 
+end
+
+
+"""
+    intersection_distance(x1, y1, x2, y2, α)
+
+Approximate distance from origin to ellipse boundary along ray at angle `α`.
+
+- `(x1, y1)` is assumed to lie on the major axis (used for orientation + length).
+- `(x2, y2)` only contributes its distance as semi-minor axis length.
+- `α` is ray angle in radians (CCW from x-axis).
+"""
+function intersection_distance(x1, y1, x2, y2, α)
+    a = hypot(x1, y1)             # major radius
+    b = hypot(x2, y2)             # minor radius (approx)
+    @assert a >= b
+    θ = atan(y1, x1)              # orientation
+    ϕ = α - θ
+    denom = (cos(ϕ)^2)/a^2 + (sin(ϕ)^2)/b^2
+    return 1 / sqrt(denom)
+end
+
+x1, y1 = 2, 2
+x2, y2 = 1, 1
+
+@test intersection_distance(x1, y1, x2, y2, π / 4) ≈ 2√2
+@test intersection_distance(x1, y1, x2, y2, 3π / 4) ≈ √2
+@test intersection_distance(x1, y1, x2, y2, 5π / 4) ≈ 2√2
+@test intersection_distance(x1, y1, x2, y2, 7π / 4) ≈ √2
+@test √2 < intersection_distance(x1, y1, x2, y2, π / 2) < 2√2
+@test √2 < intersection_distance(x1, y1, x2, y2, π / 2) < 2√2
+
+x1, y1 = -2, -2
+x2, y2 = -1, -1
+
+@test intersection_distance(x1, y1, x2, y2, π / 4) ≈ 2√2
+@test intersection_distance(x1, y1, x2, y2, 3π / 4) ≈ √2
+@test intersection_distance(x1, y1, x2, y2, 5π / 4) ≈ 2√2
+@test intersection_distance(x1, y1, x2, y2, 7π / 4) ≈ √2
+@test √2 < intersection_distance(x1, y1, x2, y2, π / 2) < 2√2
+@test √2 < intersection_distance(x1, y1, x2, y2, π / 2) < 2√2
+
+x1, y1 = -2, -2
+x2, y2 = 1, 1
+
+@test intersection_distance(x1, y1, x2, y2, π / 4) ≈ 2√2
+@test intersection_distance(x1, y1, x2, y2, 3π / 4) ≈ √2
+@test intersection_distance(x1, y1, x2, y2, 5π / 4) ≈ 2√2
+@test intersection_distance(x1, y1, x2, y2, 7π / 4) ≈ √2
+@test √2 < intersection_distance(x1, y1, x2, y2, π / 2) < 2√2
+@test √2 < intersection_distance(x1, y1, x2, y2, π / 2) < 2√2
+
+x1, y1 = 0, 2
+x2, y2 = 1, 0
+@test intersection_distance(x1, y1, x2, y2, π / 2) ≈ 2
+@test intersection_distance(x1, y1, x2, y2, 3π / 2) ≈ 2
+@test intersection_distance(x1, y1, x2, y2, 0) ≈ 1
+@test intersection_distance(x1, y1, x2, y2, π) ≈ 1
+@test 1 < intersection_distance(x1, y1, x2, y2, π / 4) < 2
+@test 1 < intersection_distance(x1, y1, x2, y2, 5π / 4) < 2
+
+
+"""
+    intersection_distance_glyph(gs::GSTensor, K::TENSORMAP, α)
+
+Approximate distance from origin along ray at angle `α` to eclipsing elliptical boundary .
+"""
+function intersection_distance_glyph(gs, K, α)
+     @assert gs.directions == 1:2 "One direction not implemented. "
+    # Extract the half-length of primary and secondary principal direction
+    # glyphs.
+    # 
+    # (x1, y1): Longest vector
+    # (x2, y2): Shortest vector
+    # The local 'y' is in a right handed, y up, x right coordinate system
+    if norm(K[:, 1]) >= norm(K[:, 2])
+        x1, x2 = K[1, :]
+        y1, y2 = -K[2, :]
+    else
+        x2, x1 = K[1, :]
+        y2, y1 = -K[2, :]
+    end
+    l1 = hypot(x1, y1)
+    l2 = hypot(x2, y2)
+    if l2 / l1 < 5 * VECTOR_REL_HALFWIDTH
+        # The minor axis is so short compared to the other axis
+        # that the determining 'width' is the half-cone axis of the vector glyph.
+        # Since we don't want completely neighbouring parallel vectors,
+        # we also include a factor of 3.
+        # The direction is set to 90° off (x1, y1)
+        #x2 = -y1 * VECTOR_REL_HALFWIDTH
+        #y2 = x1 * VECTOR_REL_HALFWIDTH
+        x2norm = x2 / l2
+        y2norm = y2 / l2
+        minlen = 5 * l1 * VECTOR_REL_HALFWIDTH
+        x2 = x2norm * minlen
+        y2 = y2norm * minlen
+    end
+    idist =  gs.multip * intersection_distance(x1, y1, x2, y2, α)
+    # 
+end
+
+#= This function:
+    length(filtered_placements) = 2461
+  0.425071 seconds (539.44 k allocations: 62.942 MiB, 5.91% gc time)
+    length(filtered_placements) = 655
+  0.206523 seconds (230.81 k allocations: 45.922 MiB, 5.69% gc time)
+=#
+function placements_and_values(b, gs, ppts)
+    passed_placements = CartesianIndex{2}[]
+    passed_values = TENSORMAP[]
+    passed_radii = Float64[]
+    se = Set(ppts)
+    while !isempty(se)
+        # Set current point, drop it from the set.
+        pt = pop!(se)
+        K = b(pt)
+        r = required_radius_for_plotting(gs, K)
+        if r > MAG_EPS
+            if isempty(passed_placements)
+                # Only this point to consider: There must be room.
+                push!(passed_placements, pt)
+                push!(passed_values, copy(K))
+                push!(passed_radii, r)
+            else
+                # Coarse filtering:
+                # The locations for which glyph enveloping 
+                # circles would overlap
+                i_candidates = findall(1:length(passed_placements)) do i
+                    npt = passed_placements[i]
+                    nr = passed_radii[i]
+                    r + nr >  norm(npt.I .- pt.I)
+                end
+                # Finer filtering:
+                # We approximate an octahedron around pt and around each npt.
+                any_too_close = any(i_candidates) do i
+                    npt = passed_placements[i]
+                    nr = passed_radii[i]
+                    # From pt to npt
+                    v = npt.I .- pt.I
+                    # The angle is calculated as if we're in a 'y up' c.s.
+                    αv = atan(-v[1], v[2]) 
+                    # Intersection with pt's ellipse
+                    rpt = intersection_distance_glyph(gs, K, αv)
+                    # Npt's ellipse. Unfortunately, this slightly heavy calculation is
+                    # not stored for the next loop.
+                    Kn = b(npt)
+                    rnpt = intersection_distance_glyph(gs, Kn, αv + π)
+                    # The ellipses overlap when
+                    rpt + rnpt >  norm(v)
+                end
+                # Would passing this glyph
+                # overlap already passed glyphs?
+                if ! any_too_close
+                    push!(passed_placements, pt)
+                    push!(passed_values, copy(K))
+                    push!(passed_radii, r)
+                end
+            end
         end
     end
-    # Normalize
-    #m = maximum(glyph_side)
-    # TEMP debug
-    #glyph_side[100:400, 100:500] .= 0.0
-    #glyph_side[100:400, 500:900] .= 1.0
-    #glyph_side ./ m
+    passed_placements, passed_values
 end
 
-
-"""
-    adjust_distribution(p; dst_minval = 0.01, dst_maxval = 1.0, src_minval = 0.2, src_maxval = 1.0, t = 0.5, slope = 1.2, r = 40
-"""
-function adjust_distribution!(p; dst_minval = 0.01, dst_maxval = 1.0, src_minval = 0.2, src_maxval = 1.0, t = 0.5, slope = 1.2, r = 40)
-    # Remember that the sum of two opposite interpolation is a const plus a linear interpolation.
-    @assert 0.0 <= maximum(p)
-    @assert minimum(p) >= 0.0
-    @assert 1.0 >= dst_maxval >= 0.0
-    adjust_histogram!(p, ContrastStretching(;t, slope))
-    adjust_histogram!(p, LinearStretching(; dst_minval, dst_maxval, src_minval, src_maxval))
-    #=
-    adjust_histogram!(p, GammaCorrection(; gamma))
-    src_minval, src_maxval = extrema(p)
-    adjust_histogram!(p, LinearStretching(;src_minval, src_maxval, dst_minval, dst_maxval))
-    =#
-    # If a 'large glyph' pixel is adjacent to a 'small glyph' pixel,
-    # we probably shouldn't place a glyph on the 'small glyph' pixel.
-    # Hence, we extend the low probability areas.
-    #erode!(p; r)
+function pack_curvature_glyphs!(img, z, gs::GSTensor; scatterdist = gs.dashsize, seed = MersenneTwister(123))
+    b = BidirectionOnGrid(𝐊!, z)
+    ppts = potential_scattered_placements(b, gs; scatterdist, seed)
+    # DEBUG
+    # mark_at!(img, ppts, 1, "on_circle")
+    filtered_placements, filtered_values = placements_and_values(b, gs, ppts)
+    @show length(filtered_placements)
+    # DEBUG
+    #for (pt, K) in zip(filtered_placements, filtered_values)
+    #    r = required_radius_for_plotting(gs, K)
+    #    diameter = 1 + 2 * (Int(floor(r)))
+    #    mark_at!(img, [pt], diameter, "on_circle")
+    #end
+    plot_curvature_glyphs!(img, gs, filtered_placements, filtered_values)
+    img
 end
-
-"""
-    glyph_probability(z; dst_minval = 0.01, dst_maxval = 1.0, src_minval = 0.2, src_maxval = 1.0, t = 0.5, slope = 1.2, r = 40)
-
-Note that r is quite expensive. It decreases propbability 
-in radius r from a low probability pixel.
-
-
-TODO: Pick a better algorithm:
-1) Select (too many) pixels
-2) For each pixel, calculate probability.
-3) Toss the dice and plot
-
-Possibly, check if the vincinity is already covered by an earlier glyph.
-"""
-function glyph_probability(z; dst_minval = 0.01, dst_maxval = 1.0, src_minval = 0.2, src_maxval = 1.0, t = 0.5, slope = 1.2, r = 40)
-    # Area needed for a glyph here. Values on the edges won't matter.
-    p = side_for_glyph(z).^2
-    # Likelihood (not normalized) that we will place a glyph on each pixel
-    m = maximum(p)
-    p .= (m .- p)
-    # But there's not zero space left, even where the glyphs are largest
-    adjust_distribution!(p; dst_minval, dst_maxval, src_minval, src_maxval, t, slope, r)
-end
-
-function pts_for_glyphs(z, n; dst_minval = 0.01, dst_maxval = 1.0, src_minval = 0.2, src_maxval = 1.0, t = 0.5, slope = 1.2, r = 40)
-    spac = glyph_probability(z; dst_minval, dst_maxval, src_minval, src_maxval, t, slope, r)
-    sample(MersenneTwister(123), CartesianIndices(spac), Weights(vec(spac)), n)
-end
-
-
-z = z_exp3()
-args = [(; gs = GSTensor(multip = 5000, directions = 2, ming = -300)),
-        (; gs = GSTensor(multip = 5000, directions = 1, maxg = 300))]
-begin
+function pack_curvature_glyphs(z, gs::GSTensor; scatterdist = gs.dashsize, seed = MersenneTwister(123))
     img = background(z)
-    dst_minval = 0.07
-    pts = pts_for_glyphs(z, 8000; dst_minval)
-    fcall(plot_curvature_glyphs!, args, img, z, pts)
+    pack_curvature_glyphs!(img, z, gs; scatterdist, seed)
 end
 
-z = z_cos(;mult = 50)
-args = [(; gs = GSTensor(multip = 10000, directions = 1, maxg = 300)),
-        (; gs = GSTensor(multip = 10000, directions = 2, ming = -300))]
-begin
-    img = background(z)
-    dst_minval = 0.03
-    r = 40
-    pts = pts_for_glyphs(z, 8000; dst_minval, r)
-    fcall(plot_curvature_glyphs!, args, img, z, pts)
-end
+img = pack_curvature_glyphs(z_sphere()[100:300, 100:300], GSTensor(multip = 12000)) 
+@time  img = pack_curvature_glyphs(z_cylinder(0), GSTensor(multip = 12000)) 
 
-# The variation here is too large for this type of plot
-z = z_ridge_peak_valleys()
-args = [(; gs = GSTensor(multip = 1000, directions = 1, maxg = 30, ming = -30)),
-        (; gs = GSTensor(multip = 1000, directions = 2, maxg = 30, ming = -30))]
-begin
-    img = background(z)
-    dst_minval = 0.03
-    r = 40
-    pts = pts_for_glyphs(z, 8000; dst_minval, r)
-    fcall(plot_curvature_glyphs!, args, img, z, pts)
-end
+#for scatterdist = 201:-10:1
+#    @show scatterdist
+#    @time img = pack_curvature_glyphs(z_cylinder(0), GSTensor(multip = 12000); scatterdist)
+#    display(img) 
+#end
 
-# TODO somehow limit the size by sending arguments to pts_for_glyphs
-z = z_ellipsoid(; tilt = π / 4)
-args = [(; gs = GSTensor(multip = 1000, directions = 1, maxg = 30, ming = -30)),
-        (; gs = GSTensor(multip = 1000, directions = 2, maxg = 30, ming = -30))]
-begin
-    img = background(z)
-    dst_minval = 0.03
-    r = 40
-    pts = pts_for_glyphs(z, 8000; dst_minval, r)
-    fcall(plot_curvature_glyphs!, args, img, z, pts)
-end
+
+
+
+# More examples
+pack_curvature_glyphs(z_cylinder_offset(π / 6), GSTensor(multip = 12000))
+
+gs = GSTensor(multip = 5000, ming = -25)
+pack_curvature_glyphs(z_ellipsoid(; tilt = π / 4), gs; scatterdist = 1)
+
+gs = GSTensor(multip = 5000, strength = 10, ming = -25)
+pack_curvature_glyphs(z_ellipsoid(; tilt = π / 4, a= 0.3), gs; scatterdist = 1)
+
+# This would benefit from a more advanced collision detection.
+pack_curvature_glyphs(z_paraboloid(), GSTensor(multip = 15000))
+
+pack_curvature_glyphs(z_paraboloid(; a = 400, b = 600), GSTensor(multip = 10000 ))
+
+pack_curvature_glyphs(z_sphere(), GSTensor(multip = 10000))
+
+img = pack_curvature_glyphs(z_exp3(), GSTensor(multip = 7000))
+pack_curvature_glyphs!(img, z_exp3(), GSTensor(multip = 7000);  seed = MersenneTwister(1))
+pack_curvature_glyphs!(img, z_exp3(), GSTensor(multip = 7000);  seed = MersenneTwister(2))
+
+pack_curvature_glyphs(z_cos(; mult = 50), GSTensor(multip = 25000))
+
+img = pack_curvature_glyphs(z_ridge_peak_valleys(), GSTensor(multip = 4000 ), scatterdist = 1)
+pack_curvature_glyphs!(img, z_ridge_peak_valleys(), GSTensor(multip = 4000), seed = MersenneTwister(2))
+

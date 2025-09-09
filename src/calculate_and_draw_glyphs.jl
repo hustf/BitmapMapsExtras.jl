@@ -68,6 +68,7 @@ end
     plot_curvature_glyphs(z, pts; gs = GSTensor())
     plot_curvature_glyphs!(img, z, pts; gs = GSTensor())
     plot_curvature_glyphs!(cov::Matrix{Float32}, z, pts, directions, gs::GSTensor)
+    plot_curvature_glyphs!(img, gs::GSTensor, pts, values)
 """
 function plot_curvature_glyphs(z, pts; gs = GSTensor())
     # Allocate an empty color image (since user didn't supply one)
@@ -79,20 +80,13 @@ function plot_curvature_glyphs!(img, z, pts; gs = GSTensor())
     if length(gs.directions) == 1
         # Coverage buffer
         cov = zeros(Float32, size(img)...)
-        # Modify cover
-        plot_curvature_glyphs!(cov, z, pts, gs)
-        # Apply color by coverage
-        color = first(gs.directions) == 1 ? gs.color1 : gs.color2
-        apply_color_by_coverage!(img, cov, color)
     else
         # Coverage buffers
-        vcov = [zeros(Float32, size(img)...), zeros(Float32, size(img)...)]
-        # Modify cover buffers
-        plot_curvature_glyphs!(vcov, z, pts, gs)
-        # Apply color by coverages
-        apply_color_by_coverage!(img, vcov[1], gs.color1)
-        apply_color_by_coverage!(img, vcov[2], gs.color2)
+        cov = [zeros(Float32, size(img)...), zeros(Float32, size(img)...)]
     end
+    # Modify cover buffer(s)
+    plot_curvature_glyphs!(cov, z, pts, gs)
+    apply_color_by_coverage!(img, cov, gs)
     img
 end
 function  plot_curvature_glyphs!(cov::T, z, pts, gs::GSTensor) where T<:Union{Matrix{Float32}, Vector{Matrix{Float32}}}
@@ -109,7 +103,44 @@ function  plot_curvature_glyphs!(cov::T, z, pts, gs::GSTensor) where T<:Union{Ma
     end
     cov
 end
+function plot_curvature_glyphs!(img, gs::GSTensor, pts, checked_values)
+    if length(gs.directions) == 1
+        # Coverage buffer
+        cov = zeros(Float32, size(img)...)
+    else
+        # Coverage buffers
+        cov = [zeros(Float32, size(img)...), zeros(Float32, size(img)...)]
+    end
+    # Modify cover(s)
+    plot_curvature_glyphs!(cov, gs, pts, checked_values)
+    # Apply to img in specified color(s)
+    apply_color_by_coverage!(img, cov, gs)
+    img
+end
 
+function plot_curvature_glyphs!(cov::T, gs::GSTensor, pts, checked_values) where T<:Vector{Matrix{Float32}}
+    @assert length(pts) == length(checked_values)
+    # Plot curvature glyphs for internal points one at a time
+    for (pt, K) in zip(pts, checked_values)
+        # Scale and plot the single glyph
+        v1 = gs.multip .* view(K, :, 1)
+        draw_bidirectional_quantity_glyph!(cov[1], pt, v1, gs.strength)
+        v2 = gs.multip .* view(K, :, 2)
+        draw_bidirectional_quantity_glyph!(cov[2], pt, v2, gs.strength)
+    end
+    cov
+end
+
+function plot_curvature_glyphs!(cov::Matrix{Float32}, gs::GSTensor, pts, checked_values)
+    # Plot curvature glyphs for internal points one at a time
+    for (pt, K) in zip(pts, checked_values)
+        println(pt)
+        # Scale and plot the single glyph
+        v = gs.multip .* view(K, :, first(gsdirections))
+        draw_bidirectional_quantity_glyph!(cov, pt, v, gs.strength)
+    end
+    cov
+end
 
 
 ####################################
@@ -138,14 +169,46 @@ function plot_𝐧ₚ_glyphs!(cov::Matrix{Float32}, z, pts; gs = GSVector())
     cov
 end
 function plot_𝐧ₚ_glyphs!(cov::Matrix{Float32}, z, pts, Ri, Ω, v, gs)
-    f = v -> is_in_limits(gs, v)
     # Plot projected vector glyphs for internal points one at a time
     for pt in filter(pt -> pt ∈ Ri, sort(vec(pts)))
         # Find 𝐧ₚ in-place, mutates v.
         # v is in the format (dz/dx, dz/dy)
         𝐧ₚ!(v, view(z, Ω .+ pt))
         # Scale and plot the single glyph
-        plot_vector!(cov, pt, f, gs.dashsize, gs.multip * v, gs.strength)
+        plot_𝐧ₚ_glyph!(cov, pt, v, gs)
     end
     cov
+end
+
+# This method is placed here because it uses an 'internal' type,
+# whereas draw_direct is more general and might be moved to 
+# a separate package.
+function plot_𝐧ₚ_glyph!(cov, pt, v, gs)
+    if is_in_limits(gs, v)
+        Δj = Int(round(v[1]))
+        Δi = -Int(round(v[2]))
+        draw_vector!(cov, pt, Δi, Δj, gs.strength)
+    else
+        if dashsize > 0
+            # A dash instead of the out-of-limits vector glyph
+            spray!(cov, pt, gs.dashsize, gs.strength)
+        end
+    end
+end
+
+# This method is placed here because it uses an 'internal' type,
+# whereas draw_direct is more general and might be moved to 
+# a separate package.
+"""
+    apply_color_by_coverage!(img, cov, gs::GSTensor)
+"""
+function apply_color_by_coverage!(img, cov, gs::GSTensor)
+    if length(gs.directions) == 1
+        color = first(gs.directions) == 1 ? gs.color1 : gs.color2
+        apply_color_by_coverage!(img, cov, color)
+    else
+        apply_color_by_coverage!(img, cov[1], gs.color1)
+        apply_color_by_coverage!(img, cov[2], gs.color2)
+    end
+    img
 end

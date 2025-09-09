@@ -8,6 +8,7 @@
  # BidirectionOnGrid
  # BidirectionInDomain
 
+
 # Low level. See `allocations_curvature` for comments.
 struct BidirectionOnGrid{F, T}
     fdir!::F # e.g 𝐊!. Input signature: (K, vα, vβ, vκ, P, M, vϕ)
@@ -117,7 +118,7 @@ Top level for integrating to streamlines.
 `flip` carries data on which of two directions we're
 currently following. See 'reset!'.
 """
-struct UnidirectionAtXY <: DirectionFunctor # DirectionFunctor
+struct UnidirectionAtXY <: DirectionFunctor
     baxy::BidirectionAtXY
     du::MVector{2, Float64}
     flip::Ref{Bool}

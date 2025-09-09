@@ -9,9 +9,8 @@
  # DirectionOnGrid
  # DirectionInDomain
 
-
 struct DirectionOnGrid
-    Ω::CartesianIndices # Square neighborhood
+    Ω::CartesianIndices{2, Tuple{UnitRange{Int64}, UnitRange{Int64}}}# Square neighborhood
     fdir!::Function # e.g 𝐧ₚ!(v, M)
     z::Matrix
 end

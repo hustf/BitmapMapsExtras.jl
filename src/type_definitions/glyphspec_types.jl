@@ -4,6 +4,16 @@
 
 abstract type GlyphSpec end 
 
+#=
+Maybe make direction into this:
+julia> struct O1{D1, D2}
+       x
+       end
+
+julia> O1{Val{true}, Val{false}}(2)
+O1{Val{true}, Val{false}}(2)
+=#
+
 struct GSTensor <: GlyphSpec
     multip::Float64
     ming::Float64
@@ -15,11 +25,13 @@ struct GSTensor <: GlyphSpec
     directions::UnitRange{Int64}
 end
 function GSTensor(;multip = 50, ming = -50, maxg = 50,
-    dashsize = Float32(maxg / 10), strength = 1f0, color1 = PALETTE_GRGB[3],
+    dashsize = Float32(maxg / 10), strength = 10f0, color1 = PALETTE_GRGB[3],
     color2 = PALETTE_GRGB[4], directions = 1:2)
+    rd = to_range(directions)
+    @assert first(rd) ∈ [1, 2] && last(rd) ∈ [1, 2] "Directions can be 1 or 2, not: $rd"
     #
     GSTensor(float(multip), float(ming), float(maxg), Float32(dashsize), Float32(strength),
-        color1, color2, to_range(directions))
+        color1, color2, rd)
 end
 to_range(x::Int64) = x:x
 to_range(x::UnitRange{Int64}) = x 
