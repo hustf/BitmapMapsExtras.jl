@@ -53,9 +53,6 @@ Kernel for second derivative. Applies to a vector with values interpolated from 
 """
 const KERN´´ = SVector{5, Float64}([0.25, 0.0, -0.5, 0.0, 0.25])
 
-"Indices for second derivative, from a lazily rotated matrix."
-const W = SVector{5, CartesianIndex{2}}([CartesianIndex(1, 3), CartesianIndex(2, 3), CartesianIndex(3, 3), CartesianIndex(4, 3), CartesianIndex(5, 3)])
-
 """
 Sample angles in the tangent plane.
 Values are optimized in 'optimize_sample_angles.jl'.
