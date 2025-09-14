@@ -9,8 +9,6 @@ import StaticArrays
 using StaticArrays: SVector, MVector, MMatrix, SMatrix
 import LinearAlgebra
 using LinearAlgebra: ⋅, norm, normalize!
-import ImageTransformations
-using ImageTransformations: recenter, center, RotMatrix, WarpedView
 import Interpolations
 using Interpolations: OnGrid, Flat, BSplineInterpolation
 using Interpolations: interpolate, BSpline, Linear

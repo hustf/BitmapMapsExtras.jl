@@ -25,7 +25,7 @@ img = grid_fcall_with_background(f, args; z = z_paraboloid(; a = 0.6r, b = 0.5r)
 
 # All concave  (green)
 img = grid_fcall_with_background(f, args; z = z_ellipsoid(), Δ = 1)
-@test hashstr(img) == "a71df781787f76b24121a78a7fde2d2e1313e599" 
+@test hashstr(img) == "8a968074801f2a0619d5c74a66072177be5c0a01" 
 
 # All convex-concave, saddle (blue)
 img = grid_fcall_with_background(f, args; z = z_paraboloid(;a= 0.6r, b = -0.4r), Δ = 1)

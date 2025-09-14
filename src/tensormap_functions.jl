@@ -20,13 +20,11 @@ function interpolate_unit_square(corners::SMatrix{2, 2, TENSORMAP}, xus::Abstrac
     f12 = corners[1, 2] # (x, y) = (0, 1)
     f21 = corners[2, 1] # (x, y) = (1, 0)
     f22 = corners[2, 2] # (x, y) = (1, 1)
-    K = (1 - x) * (1 - y) * f11 + 
+    (1 - x) * (1 - y) * f11 + 
         (1 - x) * y * f21 +
         x * (1 - y) * f12 + 
                 x * y * f22
-    K
 end
-
 
 """
     update_corners!(bid::BidirectionInDomain, i1, j1, i2, j2)

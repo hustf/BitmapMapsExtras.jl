@@ -2,7 +2,7 @@
 # as well as supporting functions.
 # Also contains `allocations_curvature`.
 # Relies on `tangent_basis.jl` and `bidirectional_quantity.jl`.
-# Relies on constants KERN´´, W, VΦ.
+# Relies on constants KERN´´ and VΦ.
 
 """
     principal_curvature_components(z::Matrix, pt::CartesianIndex)
@@ -60,7 +60,7 @@ function principal_curvatures_and_angles!(vβ, vα, vκ, P, M, vϕ, lpc)
     # described by P. Sampling must be done in the screen plane,
     # since our data is an elevation matrix with indices as -y, x
     # 
-    # Find 'screen angles' vα:
+    # Find 'screen angles' vα which are projections of the fixed vϕ
     angle_tangent_to_xy!(vα, vϕ, P)
     # Sample curvatures vκ
     sample_curvature_in_directions!(vκ, M, P, vα)
@@ -69,9 +69,8 @@ function principal_curvatures_and_angles!(vβ, vα, vκ, P, M, vϕ, lpc)
     @assert typeof(κ1) <: Float64
     @assert typeof(κ2) <: Float64
     @assert typeof(ϕ1) <: Float64
-    # Principal angles vβ in the yx (screen) plane. Note that ϕ1 and ϕ2 are 
-    # orthonormal in the tangent plane, but not generally in the yx-plane
-    angle_tangent_to_xy!(vβ, [ϕ1, ϕ1 + π / 2], P)
+    # Principal angles vβ in the yx (screen) plane. 
+    tangent_dyad_to_xy!(vβ, ϕ1, P)
     vβ, κ1, κ2 
 end
 
@@ -93,29 +92,48 @@ end
 
 function sample_in_direction(α, M, 𝐧ₜₚ₁, 𝐧ₜₚ₂, 𝐧ₜₚ₃)
     # Shorthand
-    c = cos(α)
-    s = sin(α)
+    co = cos(α)
+    si = sin(α)
     #
-    # Regarding direction, consider the comments on flipping to a 
-    # right-handed situation below.
-    αl = α - π / 2 
-    # Define the transformation
-    tfm = recenter(RotMatrix(αl), center(M))
-    # Lazy rotated matrix.
-    Mr = WarpedView(M, tfm; fillvalue = Flat())
     # Normal curvature and unit tangent vector in the 'matrix coordinate system',
     # where when α = 0 : 
     #           local axis lx points along increasing rows in the unrotated matrix (that is: down in an image).
-    #           Sampling from increasing rows can be much faster than sampling from decreasing rows because of how
+    #           Sampling from increasing rows could be faster than sampling from decreasing rows because of how
     #           memory access works.
     #       when α = π / 4: 
     #           local axis lx points along decreasing columns (that is: left in an image)
     # First derivative, taken from the tangent plane
-    z´ = -(c * 𝐧ₜₚ₁ + s * 𝐧ₜₚ₂) / 𝐧ₜₚ₃
+    z´ = -(co * 𝐧ₜₚ₁ + si * 𝐧ₜₚ₂) / 𝐧ₜₚ₃
     # Second derivative
-    z´´ = KERN´´ ⋅ Mr[W]
+    z´´ = sampled_second_derivative_in_direction(M, co, -si)
     # Extrinsic curvature in this direction (from Kreyszig AEM)
     z´´ / (1 + z´^2)^(3 / 2)
+end
+
+function sampled_second_derivative_in_direction(M, co, si)
+    @assert size(M) == (5, 5)
+    accum = 0.0
+    for pos in 1:5
+        k = KERN´´[pos]
+        x = 3 + (pos - 3) * co
+        y = 3 + (pos - 3) * si
+        accum += k * sample_at_float(M, x, y)
+    end
+    accum
+end
+
+function sample_at_float(M, x, y)
+    # Identify (up to four) points on grid around (x, y)
+    j1, j2 =  Int(floor(x)), Int(ceil(x))
+    i1, i2 =  Int(floor(y)), Int(ceil(y))
+    # Coordinates within unit square
+    u = x - j1
+    v = y - i1
+    # Interpolate
+    (1 - u) * (1 - v) * M[i1, j1] + 
+          (1 - u) * v * M[i2, j1] +
+          u * (1 - v) * M[i1, j2] + 
+                u * v * M[i2, j2]
 end
 
 """
@@ -170,7 +188,35 @@ function angle_tangent_to_xy!(vα, vϕ, P)
         α = atan(y, x)
     end
 end
+"""
+    tangent_dyad_to_xy!(vα, ϕ::AbstractFloat, P)
 
+Saves a memory allocation compared to the equivalent
+
+```
+angle_tangent_to_xy!(vα, [ϕ, ϕ + π / 2], P)
+```
+"""
+function tangent_dyad_to_xy!(vα, ϕ::AbstractFloat, P)
+    # Tangent plane direction
+    u = cos(ϕ)
+    v = sin(ϕ)
+    # Standard-basis vector 𝐩 = P ⋅ 𝐮
+    # Project onto standard basis xy.
+    # This works with tangent bases with 
+    # the conditions we set on orientation.
+    x = P[1]·u + P[4]·v
+    y = P[5]·v
+    vα[1] = atan(y, x)
+    # In the tangent plane, the secondary principal direction
+    # is perpendicular to ϕ. The unit directional vectors 
+    # form an orthonormal dyad.
+    u, v = -v, u
+    x = P[1]·u + P[4]·v
+    y = P[5]·v
+    vα[2] = atan(y, x)
+    vα
+end
 
 
 """
@@ -321,6 +367,7 @@ function allocations_curvature(R::CartesianIndices; vϕ = VΦ)
     A = SMatrix{4, 3, Float64, 12}(hcat(ones(Float64, size(vϕ, 1)), cos.(2vϕ), sin.(2vϕ)))
     vκs = SVector{4, Float64}(Array{Float64, 1}(undef, 4))
     lpc = init(LinearProblem{true}(A, vκs), NormalCholeskyFactorization(), OperatorAssumptions(false, condition=OperatorCondition.WellConditioned))
+    #
     Ri, Ω, v, P, K, vα, vκ, vβ, lpc
 end
 
