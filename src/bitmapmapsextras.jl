@@ -9,9 +9,6 @@ import StaticArrays
 using StaticArrays: SVector, MVector, MMatrix, SMatrix
 import LinearAlgebra
 using LinearAlgebra: ⋅, norm, normalize!
-import Interpolations
-using Interpolations: OnGrid, Flat, BSplineInterpolation
-using Interpolations: interpolate, BSpline, Linear
 import LinearSolve
 using LinearSolve: init, LinearProblem, solve!, NormalCholeskyFactorization
 using LinearSolve: OperatorCondition, OperatorAssumptions, LinearCache
