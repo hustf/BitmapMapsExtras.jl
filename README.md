@@ -62,6 +62,8 @@ Here we add other stuff. So far:
 
 ## Current progress
 
+Version 0.0.11 
+
 Version 0.0.10 drops dependency ImageTransformations. Custom sub-pixel interpolations uses less memory allocation.
 
 Version 0.0.9 outlines (currently in `test/t_calculate_and_draw_glyphs.jl`) a method to densely pack tensormap glyphs.

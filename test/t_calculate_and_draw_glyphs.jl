@@ -3,13 +3,12 @@ using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
 using BitmapMapsExtras: plot_tangent_basis_glyphs, plot_tangent_basis_glyphs!
 using BitmapMapsExtras: plot_curvature_glyphs, plot_curvature_glyphs!
-using BitmapMapsExtras: plot_𝐧ₚ_glyphs!, PALETTE_GRGB
+using BitmapMapsExtras: plot_𝐧ₚ_glyphs!, plot_𝐧ₚ_glyphs, PALETTE_GRGB
 using BitmapMapsExtras: BidirectionOnGrid, 𝐊!, Domain, TENSORMAP
 using BitmapMapsExtras: GSTensor, GSTangentBasis, GSVector, GlyphSpec
 using BitmapMapsExtras: is_in_limits, MAG_EPS, VECTOR_REL_HALFWIDTH
 using BitmapMapsExtras: is_bidirec_vect_positive
 using BitmapMapsExtras.BitmapMaps: mark_at!
-
 
 import StatsBase
 using StatsBase: Weights, sample, norm
@@ -20,23 +19,14 @@ using ImageContrastAdjustment: LinearStretching, ContrastStretching, adjust_hist
 
 !@isdefined(hashstr) && include("common.jl")
 
+@test_true
 # Tangent basis
 z = z_paraboloid()
 img = background(z)
 plot_tangent_basis_glyphs!(img, z, [CartesianIndex((315, 215))])
 
 
-# DEV /
-#=
-using BenchmarkTools
-# 36.886 ms (63 allocations: 12.50 MiB)
-@btime plot_tangent_basis_glyphs!(img, z, [CartesianIndex((315, 215))])
 
-@profview plot_tangent_basis_glyphs!(img, z, [CartesianIndex((315, 215))])
-
-@profview_allocs plot_tangent_basis_glyphs!(img, z, [CartesianIndex((315, 215))])
-=#
-# / DEV
 
 
 ########################################################
@@ -56,14 +46,15 @@ grid_fcall_with_background(plot_tangent_basis_glyphs!, args; z = z_cos())
 args = [nothing, nothing, nothing]
 grid_fcall_with_background(plot_tangent_basis_glyphs!, args; z = z_ellipsoid(; tilt = π / 6))
 # Case 11: Vector of keywords
-
 args = [(; gs = GSTangentBasis(;halfsize = 35)), (; gs = GSTangentBasis(;halfsize = 40)), (; gs = GSTangentBasis(;halfsize = 40))]
 grid_fcall_with_background(plot_tangent_basis_glyphs!, args; z = z_ridge_peak_valleys())
-
 args = nothing
 grid_fcall_with_background(plot_tangent_basis_glyphs!, args)
 
 
+# Projected normal vector, direct call
+plot_𝐧ₚ_glyphs(z_ellipsoid(; tilt = π / 4), grid_indices((999, 999)); 
+    gs = GSVector(;multip = 1000, maxg = 200, dashsize = 4))
 
 # Projected normal vector
 args = (; gs = GSVector(;multip = 100, maxg = 100))
@@ -93,12 +84,12 @@ grid_fcall_with_background(plot_𝐧ₚ_glyphs!, args, z = -z_paraboloid(; a = 5
 args = (; gs = GSVector(multip = 50, color = 0.5 * PALETTE_GRGB[3]))
 grid_fcall_with_background(plot_𝐧ₚ_glyphs!, args, z = z_exp3())
 
+
+
 # Curvature glyphs, direct call
 
 plot_curvature_glyphs(z_ellipsoid(; tilt = π / 4), grid_indices((999, 999)); gs = GSTensor(;multip = 30000, directions = 1))
-# 46.051 ms (570 allocations: 15.26 MiB)
 plot_curvature_glyphs(z_ellipsoid(; tilt = π / 4), grid_indices((999, 999)); gs = GSTensor(;multip = 30000, directions = 2))
-# 56.357 ms (705 allocations: 19.07 MiB)
 plot_curvature_glyphs(z_ellipsoid(; tilt = π / 4), grid_indices((999, 999)); gs = GSTensor(;multip = 30000, directions = 1:2))
 
 # Curvature glyphs, indirect call
@@ -337,7 +328,7 @@ function placements_and_values(b, gs, ppts)
     while !isempty(se)
         # Set current point, drop it from the set.
         pt = pop!(se)
-        K = b(pt)
+        K = b(pt.I...)
         r = required_radius_for_plotting(gs, K)
         if r > MAG_EPS
             if isempty(passed_placements)
@@ -367,7 +358,7 @@ function placements_and_values(b, gs, ppts)
                     rpt = intersection_distance_glyph(gs, K, αv)
                     # Npt's ellipse. Unfortunately, this slightly heavy calculation is
                     # not stored for the next loop.
-                    Kn = b(npt)
+                    Kn = b(npt.I...)
                     rnpt = intersection_distance_glyph(gs, Kn, αv + π)
                     # The ellipses overlap when
                     rpt + rnpt >  norm(v)
@@ -391,7 +382,7 @@ function pack_curvature_glyphs!(img, z, gs::GSTensor; scatterdist = gs.dashsize,
     # DEBUG
     # mark_at!(img, ppts, 1, "on_circle")
     filtered_placements, filtered_values = placements_and_values(b, gs, ppts)
-    @show length(filtered_placements)
+    #@show length(filtered_placements)
     # DEBUG
     #for (pt, K) in zip(filtered_placements, filtered_values)
     #    r = required_radius_for_plotting(gs, K)
@@ -407,6 +398,7 @@ function pack_curvature_glyphs(z, gs::GSTensor; scatterdist = gs.dashsize, seed 
 end
 
 img = pack_curvature_glyphs(z_sphere()[100:300, 100:300], GSTensor(multip = 12000)) 
+# 0.194754 seconds (52.19 k allocations: 37.286 MiB, 6.93% gc time)
 @time  img = pack_curvature_glyphs(z_cylinder(0), GSTensor(multip = 12000)) 
 
 #for scatterdist = 201:-10:1
@@ -427,7 +419,6 @@ pack_curvature_glyphs(z_ellipsoid(; tilt = π / 4), gs; scatterdist = 1)
 gs = GSTensor(multip = 5000, strength = 10, ming = -25)
 pack_curvature_glyphs(z_ellipsoid(; tilt = π / 4, a= 0.3), gs; scatterdist = 1)
 
-# This would benefit from a more advanced collision detection.
 pack_curvature_glyphs(z_paraboloid(), GSTensor(multip = 15000))
 
 pack_curvature_glyphs(z_paraboloid(; a = 400, b = 600), GSTensor(multip = 10000 ))
@@ -443,3 +434,25 @@ pack_curvature_glyphs(z_cos(; mult = 50), GSTensor(multip = 25000))
 img = pack_curvature_glyphs(z_ridge_peak_valleys(), GSTensor(multip = 4000 ), scatterdist = 1)
 pack_curvature_glyphs!(img, z_ridge_peak_valleys(), GSTensor(multip = 4000), seed = MersenneTwister(2))
 
+
+
+
+
+
+# DEV /
+#=
+using BenchmarkTools 
+# 36.886 ms (63 allocations: 12.50 MiB)
+# 36.811 ms (74 allocations: 12.50 MiB)
+@btime plot_tangent_basis_glyphs!(img, z, [CartesianIndex((315, 215))])
+
+function pro()
+    for i = 1:1000
+        plot_tangent_basis_glyphs!(img, z, [CartesianIndex((315, 215))])
+    end
+end
+@profview plot_tangent_basis_glyphs!(img, z, [CartesianIndex((315, 215))])
+
+@profview_allocs pro()
+=#
+# / DEV

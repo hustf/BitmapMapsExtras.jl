@@ -9,82 +9,71 @@
  # DirectionOnGrid
  # DirectionInDomain
 
-struct DirectionOnGrid
+struct DirectionOnGrid{F, T}
     Ω::CartesianIndices{2, Tuple{UnitRange{Int64}, UnitRange{Int64}}}# Square neighborhood
-    fdir!::Function # e.g 𝐧ₚ!(v, M)
-    z::Matrix
+    fdir!::F # e.g 𝐧ₚ!(v, M)
+    z::Matrix{T} # Image-sized
+    lastvalue::MVector{2, Float64}
 end
 # Constructor
 function DirectionOnGrid(fdir!, z)
     Ω = CartesianIndices((-2:2, -2:2))
-    DirectionOnGrid(Ω, fdir!, z)
+    lastvalue = zero(MVector{2, Float64})
+    DirectionOnGrid(Ω, fdir!, z, lastvalue)
 end
-# Direction as function of valid Cartesian 
-direction_on_grid!(v, dog::DirectionOnGrid, pt::CartesianIndex) =  dog.fdir!(v, view(dog.z, dog.Ω .+ pt))
+# Callable, returns a 2d vector
+function (dog::DirectionOnGrid)(i::Int64, j::Int64)
+    rngi = dog.Ω.indices[1] .+ i
+    rngj = dog.Ω.indices[2] .+ j
+    vi = view(dog.z, rngi, rngj)
+    dog.fdir!(dog.lastvalue, vi)
+    dog.lastvalue
+end
+@define_show_with_fieldnames DirectionOnGrid
 
 
-struct DirectionInDomain
-    dog::DirectionOnGrid
-    li::BSplineInterpolation{MVector{2, Float64}, 2, OffsetMatrix{MVector{2, Float64}, Matrix{MVector{2, Float64}}}, BSpline{Linear{Interpolations.Throw{OnGrid}}}, Tuple{Base.Slice{UnitRange{Int64}}, Base.Slice{UnitRange{Int64}}}}
+struct DirectionInDomain{F, T}
+    dog::DirectionOnGrid{F, T}
+    lastvalue::MVector{2, Float64}
 end
 # Constructor
-function DirectionInDomain(fdir!, z::AbstractMatrix{<:Number})
-    corners_direction = SMatrix{2,2, MVector{2,Float64}}([ MVector(0.0, 0.0) for i in 1:2, j in 1:2] )
-    # The interpolation can be modified in-place through li.coefs
-    li = interpolate(corners_direction, BSpline(Linear()))
-    DirectionInDomain(DirectionOnGrid(fdir!, z), li)
+function DirectionInDomain(fdir!, z::AbstractMatrix{<:AbstractFloat})
+    dog = DirectionOnGrid(fdir!, z)
+    lastvalue = zero(MVector{2, Float64})
+    DirectionInDomain(dog, lastvalue)
 end
-# Callable (allocates)
-(did::DirectionInDomain)(x, negy) = direction_in_domain!(MVector{2, Float64}([0, 0]), did, x, negy)
-# Direction as function of in-domain float coordinates. 'negy' is 0 at bottom of image.
-function direction_in_domain!(v, did::DirectionInDomain, x, negy)
+# Callable, returns a 2d vector. Function of in-domain float coordinates. 'negy' is 0 at bottom of image.
+function (did::DirectionInDomain)(x, negy)
     # Identify (up to four) points on grid
     j1, j2 =  Int(floor(x)), Int(ceil(x))
     i1, i2 =  Int(floor(negy)), Int(ceil(negy))
-    # Refer to mutable storage location for the directions at grid points.
-    cd = did.li.coefs
-    # Refer to 
+    # Shorthand 
     dog = did.dog
-    # Calculate and store closest grid points
-    if i1 == i2 && j1 == j2
-        # On grid, no interpolation (but we keep the structure for consistency)
-        direction_on_grid!(v, dog, CartesianIndex{2}(i1, j1)) 
-        cd[1, 1] .= v
-        cd[2, 1] .= v
-        cd[1, 2] .= v
-        cd[2, 2] .= v
-    elseif i1 == i2
-        # Line interpolation j1 - j2
-        direction_on_grid!(v, dog, CartesianIndex{2}(i1, j1)) 
-        cd[1, 1] .= v
-        cd[2, 1] .= v
-        direction_on_grid!(v, dog, CartesianIndex{2}(i1, j2)) 
-        cd[1, 2] .= v
-        cd[2, 2] .= v
-    elseif j1 == j2
-        # Line interpolation i1 - i2
-        direction_on_grid!(v, dog, CartesianIndex{2}(i1, j1)) 
-        cd[1, 1] .= v
-        cd[1, 2] .= v
-        direction_on_grid!(v, dog, CartesianIndex{2}(i2, j1))
-        cd[2, 1] .= v
-        cd[2, 2] .= v
+    lastvalue = did.lastvalue
+    #
+    if i1 != i2 && j1 != j2
+        # Both pairs are different
+        lastvalue .=  cornerweight(1, 1, x - j1, negy - i1) .* dog(i1, j1)
+        lastvalue .+= cornerweight(2, 1, x - j1, negy - i1) .* dog(i2, j1)
+        lastvalue .+= cornerweight(1, 2, x - j1, negy - i1) .* dog(i1, j2)
+        lastvalue .+= cornerweight(2, 2, x - j1, negy - i1) .* dog(i2, j2)
+    elseif i1 == i2 && j1 != j2
+        # i1 equals i2, but j1 differs from j2
+        lastvalue .=  sideweight(1, x - j1) .* dog(i1, j1)
+        lastvalue .+= sideweight(2, x - j1) .* dog(i1, j2)
+    elseif j1 == j2 && i1 != i2
+        lastvalue .=  sideweight(1, negy - i1) .* dog(i1, j1)
+        lastvalue .+= sideweight(2, negy - i1) .* dog(i2, j1)
+        # j1 equals j2 
     else
-        direction_on_grid!(v, dog, CartesianIndex{2}(i1, j1)) 
-        cd[1, 1] .= v
-        direction_on_grid!(v, dog, CartesianIndex{2}(i2, j1)) 
-        cd[2, 1] .= v
-        direction_on_grid!(v, dog, CartesianIndex{2}(i1, j2)) 
-        cd[1, 2] .= v
-        direction_on_grid!(v, dog, CartesianIndex{2}(i2, j2)) 
-        cd[2, 2] .= v
+        # i1 equals i2 and j1 equals j2
+         lastvalue .= dog(i1, j1)
     end
-    # Interpolate within (1,1)-(2, 2)
-    xn = 1 + x - j1
-    yn = 1 + negy - i1
-    v .= did.li(yn, xn)
-    v
+    lastvalue
 end
+@define_show_with_fieldnames DirectionInDomain
+
+
 
 abstract type DirectionFunctor end
 
@@ -107,8 +96,8 @@ This is a top-level abstraction encompassing the types
    Domain 
    NegateY
 """
-struct DirectionAtXY <: DirectionFunctor
-    did::DirectionInDomain
+struct DirectionAtXY{F, T} <: DirectionFunctor
+    did::DirectionInDomain{F, T}
     negy::NegateY
     d::Domain
     v::MVector{2, Float64}
@@ -123,20 +112,18 @@ function DirectionAtXY(fdir!, z)
     v = MVector{2, Float64}([0, 0])
     DirectionAtXY(did, negy, d, v)
 end
-
 # Callable. y is positive up on screen. Returns [0.0,0.0]
 # when out-of domain (the callback set doesn't immediately
 # stop calculation).
 function (daxy::DirectionAtXY)(x, y)
     if daxy.d(x, y)
-        direction_at_xy!(daxy.v, daxy.did, x, daxy.negy(y))
+        daxy.v .= daxy.did(x, daxy.negy(y))
     else
         # This occurs fairly often, though isn't presented as part of the solution.
         #printstyled("::DirectionAtXY(x, y) == ($x, $y) ∉ $(daxy.d) \n", color =:176)
         daxy.v .= 0.0
         daxy.v
     end
+    daxy.v
 end
-function direction_at_xy!(v, did::DirectionInDomain, x, negy)
-    direction_in_domain!(v, did, x, negy)
-end
+@define_show_with_fieldnames DirectionAtXY

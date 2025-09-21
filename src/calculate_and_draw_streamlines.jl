@@ -7,34 +7,34 @@
 
 """
     plot_streamlines(f, z, pts; 
-        nsamples = 5000, r = 1.2f0, 
+        sol_density = 0.05, r = 1.2f0, 
         strength = 0.7f0, rgb = COLOR_CURVGLYPH,
         odekws...)
 """
 function plot_streamlines(f, z, pts; 
-        nsamples = 5000, r = 1.2f0,
+        sol_density = 0.05, r = 1.2f0,
         strength = 0.7f0, rgb = COLOR_CURVGLYPH,
         odekws...)
     # Allocate an empty color image (since user didn't supply one)
     img = zeros(RGBA{N0f8}, size(z)...)
     # Modify the image
-    plot_streamlines!(f, z, pts, img; nsamples, r, strength, rgb)
+    plot_streamlines!(f, z, pts, img; sol_density, r, strength, rgb)
 end
 
 """
     plot_streamlines!(img, z, pts, f; 
-        nsamples = 5000, r = 1.2f0,
+        sol_density = 0.05, r = 1.2f0,
         strength = 0.7f0, rgb = COLOR_CURVGLYPH),
         odekws...)
 """
 function plot_streamlines!(img, z, pts, f; 
-    nsamples = 5000, r = 1.2f0,
+    sol_density = 0.05, r = 1.2f0,
     strength = 0.7f0, rgb = COLOR_CURVGLYPH, 
     odekws...)
     # Coverage buffer
     cov = zeros(Float32, size(img)...)
     # Modify coverage
-    plot_streamlines!(cov, z, pts, f; nsamples, r, strength, odekws...)
+    plot_streamlines!(cov, z, pts, f; sol_density, r, strength, odekws...)
     # Apply color by coverage
     apply_color_by_coverage!(img, cov, rgb)
     img
@@ -42,51 +42,63 @@ end
 
 """
     plot_streamlines!(cov::Array{Float32}, f, z, pts; 
-        nsamples = 10000, r = 1.2f0, strength = 0.7f0,
+        sol_density = 0.05, r = 1.2f0, strength = 0.7f0,
         odekws...)
+
+# Keyword arguments
+
+- `sol_density` - How far along a streamline's `t` parameter we move before checking which pixel this point 
+    would match. Reduce this to plot all covered pixels. If Δt ≈ 1 pixel width, a value of 10 would result in
+    pixels visually spaced apart.
+- `r` - This applies after the touched pixels are identified. Around each pixel, apply a 
+   sprayed circle with radius r. If r > 3, the centre pixels are not sprayed.
+- `strength` The nominal coverage applied in each spray (coverage tapers off). 
+   Coverage accumulates 'infinitely' if a pixel is sprayed 'infinitely' many times. After all 
+    spraying along streamlines is finished, coverage will be converted non-linearly to color 
+    application, see `apply_color_by_coverage`. Hence, small `strength` makes streamlines less 
+    visible, unless where many streamlines overlap.
 """
 function plot_streamlines!(cov::Array{Float32}, z, pts, f; 
-        nsamples = 10000, r = 1.2f0, strength = 0.7f0,
+        sol_density = 0.05, r = 1.2f0, strength = 0.7f0,
         odekws...)
     # Indexed points on the streamlines
-    spts = get_streamlines_points(f, z, pts, nsamples; odekws...)
+    spts = get_streamlines_points(f, z, pts, sol_density; odekws...)
     # Plot points
     draw_streamlines_points!(cov, spts, r, strength)
     cov
 end
 
-#
 
 """
     plot_bidirec_streamlines(f, z, pts, primary::Bool, flip::Bool; 
-        nsamples = 5000, r = 1.2f0, 
+        sol_density = 0.05, r = 1.2f0, 
         strength = 0.7f0, rgb = COLOR_CURVGLYPH,
         odekws...)
 """
 function plot_bidirec_streamlines(f, z, pts, primary::Bool, flip::Bool; 
-        nsamples = 5000, r = 1.2f0,
+        sol_density = 0.05, r = 1.2f0,
         strength = 0.7f0, rgb = COLOR_CURVGLYPH,
         odekws...)
     # Allocate an empty color image (since user didn't supply one)
     img = zeros(RGBA{N0f8}, size(z)...)
     # Modify the image
-    plot_bidirec_streamlines!(img, z, pts, f, primary, flip; nsamples, r, strength, rgb, odekws...)
+    plot_bidirec_streamlines!(img, z, pts, f, primary, flip; sol_density, r, strength, rgb, odekws...)
 end
 
 """
     plot_bidirec_streamlines!(img, z, pts, f, primary::Bool, flip::Bool; 
-        nsamples = 10000, r = 1.2f0,
+        sol_density = 0.05, r = 1.2f0,
         strength = 0.7f0, rgb = COLOR_CURVGLYPH),
         odekws...)
 """
 function plot_bidirec_streamlines!(img, z, pts, f, primary::Bool, flip::Bool; 
-    nsamples = 10000, r = 1.2f0,
+    sol_density = 0.05, r = 1.2f0,
     strength = 0.7f0, rgb = COLOR_CURVGLYPH, 
     odekws...)
     # Coverage buffer
     cov = zeros(Float32, size(img)...)
     # Modify coverage
-    plot_bidirec_streamlines!(cov, f, z, pts, primary, flip; nsamples, r, strength, odekws...)
+    plot_bidirec_streamlines!(cov, f, z, pts, primary, flip; sol_density, r, strength, odekws...)
     # Apply color by coverage
     apply_color_by_coverage!(img, cov, rgb)
     img
@@ -94,14 +106,14 @@ end
 
 """
     plot_bidirec_streamlines!(cov::Array{Float32}, f, z, pts, primary::Bool, flip::Bool; 
-        nsamples = 10000, r = 1.2f0, strength = 0.7f0,
+        sol_density = 0.05, r = 1.2f0, strength = 0.7f0,
         odekws...)
 """
 function plot_bidirec_streamlines!(cov::Array{Float32}, f, z, pts, primary::Bool, flip::Bool; 
-        nsamples = 10000, r = 1.2f0, strength = 0.7f0,
+        sol_density = 0.05, r = 1.2f0, strength = 0.7f0,
         odekws...)
     # Indexed points on the streamlines
-    spts = get_bidirec_streamlines_points(f, z, pts, nsamples, primary, flip; odekws...)
+    spts = get_bidirec_streamlines_points(f, z, pts, sol_density, primary, flip; odekws...)
     # Plot points
     draw_streamlines_points!(cov, spts, r, strength)
     cov
@@ -254,7 +266,7 @@ end
 # Prepare and solve the differential equation for each streamline
 #################################################################
 
-function get_bidirec_streamlines_points(f, z, pts, nsamples, primary::Bool, flip::Bool;
+function get_bidirec_streamlines_points(f, z, pts, sol_density, primary::Bool, flip::Bool;
      odekws...)
     #
     @assert eltype(pts) <: CartesianIndex{2}
@@ -265,11 +277,11 @@ function get_bidirec_streamlines_points(f, z, pts, nsamples, primary::Bool, flip
     # NegateY (function for i --> y and for y --> i)
     negy = uxy.baxy.negy
     # Extract indexed points from streamlines
-    map(sol -> extract_discrete_points_on_streamline(sol, negy, nsamples), sols)
+    map(sol -> extract_discrete_points_on_streamline(sol, negy, sol_density), sols)
 end
 
 
-function get_streamlines_points(f, z, pts, nsamples; 
+function get_streamlines_points(f, z, pts, sol_density; 
     odekws...)
     #
     @assert eltype(pts) <: CartesianIndex{2}
@@ -279,7 +291,7 @@ function get_streamlines_points(f, z, pts, nsamples;
     # Find solutions, i.e. streamlines
     sols = get_streamlines_xy(daxy, pts; odekws...)
     # Extract indexed points from streamlines
-    map(sol -> extract_discrete_points_on_streamline(sol, negy, nsamples), sols)
+    map(sol -> extract_discrete_points_on_streamline(sol, negy, sol_density), sols)
 end
 
 function get_streamlines_xy(fxy::T, pts; odekws...) where T<:DirectionFunctor
@@ -312,9 +324,10 @@ function get_solution_xy(fxy::T, vu0; odekws...) where T<:DirectionFunctor
     # Take it from keywords if supplied. 
     tspan = make_tspan(;odekws...)
     cbs = callbacks_streamlines(fxy; odekws...)
-    # Drop the 'already spent' keywords 'tstop' and 'dtfloor'.
-    # The remaining keywords will be passed on.
+    # Drop the 'already spent' keywords comprising 'tspan'.
+    # The remaining keywords will be passed on to the solver.
     remaining_kws = filter(odekws) do (kw, kwval)
+        kw == :tstart && return false
         kw == :tstop && return false
         kw == :dtfloor && return false
         true
@@ -430,7 +443,7 @@ end
 # Sample streamlines from continuous to discrete  
 ################################################
 
-function extract_discrete_points_on_streamline(sol, negy::NegateY, nsamples)
+function extract_discrete_points_on_streamline(sol, negy::NegateY, sol_density)
     if ! (sol.retcode == Success ||
         sol.retcode == Terminated) # || sol.retcode == DtLessThanMin)
         @show sol.retcode
@@ -439,7 +452,10 @@ function extract_discrete_points_on_streamline(sol, negy::NegateY, nsamples)
     # Pre-allocate
     pts = CartesianIndex{2}[]
     oldi, oldj = 0, 0, 0
-    for t in range(first(sol.t), last(sol.t), length = nsamples)
+    # sol_density determines how far, in solution time, between examined solution points.
+    # Examined points are then checked for uniqueness (discrete pixels).
+    trng = range(first(sol.t), last(sol.t), step = sol_density * sign( last(sol.t) - first(sol.t)   ))
+    for t in trng
         x, y = sol(t) # This is a fast, interpolated lookup 
         ny = negy(y)
         i = Int(round(ny))

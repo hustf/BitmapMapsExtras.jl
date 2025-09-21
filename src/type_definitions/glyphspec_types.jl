@@ -65,13 +65,13 @@ struct GSVector <: GlyphSpec
     strength::Float32 # Graphical spray strength
     color::RGB{N0f8}
 end
-function GSVector(; multip = 50, ming = -50, maxg = 50,
-    dashsize = Float32(maxg / 10), strength = 0.7f0, color = COLOR_CURVGLYPH)
+function GSVector(; multip = 50, ming = 0.01, maxg = 50,
+    dashsize = Float32(maxg / 50), strength = 0.7f0, color = COLOR_CURVGLYPH)
     #
     GSVector(float(multip), float(ming), float(maxg), Float32(dashsize), Float32(strength), color)
 end
 @define_show_with_fieldnames GSVector
-is_in_limits(gs::GSVector, v) = gs.ming ≤ norm(v) ≤ gs.maxg
+is_in_limits(gs::GSVector, v) = gs.ming ≤ gs.multip * norm(v) ≤ gs.maxg
 
 
 struct GSTangentBasis <: GlyphSpec

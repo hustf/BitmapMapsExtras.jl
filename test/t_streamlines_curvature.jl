@@ -62,6 +62,7 @@ extrema(z_paraboloid(;a= 5r, b=-5r))
 # 0.940869 seconds (2.50 M allocations: 1.322 GiB, 50.24% gc time)
 # 1.092556 seconds (2.23 M allocations: 1.310 GiB, 58.66% gc time)
 # 0.790105 seconds (1.89 M allocations: 1.294 GiB, 41.84% gc time)
+# 0.748579 seconds (1.67 M allocations: 1.286 GiB, 42.00% gc time)
 @time let 
     # This format is pretty complicated, but also powerful. 
     vargs = [((𝐊!, false, true),  (rgb = PALETTE_GRGB[3], r = 3f0, strength = 0.4f0)),
@@ -74,6 +75,7 @@ end
 # 3.064361 seconds (18.86 M allocations: 1.600 GiB, 20.63% gc time)
 # 2.845686 seconds (13.12 M allocations: 1.343 GiB, 22.42% gc time)
 # 2.225794 seconds (6.15 M allocations: 1.031 GiB, 20.39% gc time)
+# 2.143907 seconds (1.64 M allocations: 855.565 MiB, 23.44% gc time)
 @time let 
     vargs = [((𝐊!, false, true),  (rgb = PALETTE_GRGB[3], r = 1.5f0, strength = 0.4f0, dtmax = 1)),
             ((𝐊!, false, false), (rgb = PALETTE_GRGB[4], r = 1.5f0, strength = 0.4f0, dtmax = 1)), 
@@ -122,4 +124,70 @@ end
 
 
 
+#=
+# DEV Allocs
+using BitmapMapsExtras: UnidirectionAtXY, vu0_from_pts, make_tspan, callbacks_streamlines, MVector, ODEProblem, rhs!, update_corners!, VΦ
+using BenchmarkTools
 
+f = 𝐊!
+primary = true
+flip = false
+z = z_cylinder(0)
+uxy = UnidirectionAtXY(f, z, primary, flip)
+
+
+@inferred uxy(30.4, 50.2)
+# 3.375 μs (12 allocations: 560 bytes)
+# 3.400 μs (12 allocations: 496 bytes)
+# 3.350 μs (10 allocations: 400 bytes)
+# 3.388 μs (10 allocations: 400 bytes)
+# 3.388 μs (9 allocations: 352 bytes)
+# 3.350 μs (8 allocations: 320 bytes)
+# 3.650 μs (19 allocations: 608 bytes) # Change from using update_corners
+# 3.625 μs (15 allocations: 352 bytes) # Parametric type also for lpc
+# 3.175 μs (2 allocations: 32 bytes)   # use parameters in BidirectionInDomain
+# 3.075 μs (0 allocations: 0 bytes)    # use parameters in UniDirectionAtXy
+@btime uxy(30.4, 50.2)
+
+# 3.450 μs (11 allocations: 624 bytes)
+# 3.375 μs (10 allocations: 608 bytes)
+# 3.737 μs (21 allocations: 896 bytes) # Change from using update_corners
+# 3.675 μs (17 allocations: 640 bytes)
+# 3.225 μs (4 allocations: 240 bytes)   # use parameters in BidirectionInDomain
+# 3.138 μs (1 allocation: 48 bytes)     # use parameters in BidirectionAtXy
+@btime uxy.baxy(30.4, 50.2)
+baxy = uxy.baxy
+# 3.625 μs (19 allocations: 608 bytes) # Change from using update_corners
+# 3.612 μs (15 allocations: 352 bytes)
+# 3.112 μs (2 allocations: 32 bytes)
+# 3.075 μs (0 allocations: 0 bytes) # use parameters in BidirectionAtXy
+@btime baxy(30.4, 50.2)
+
+
+bid = uxy.baxy.bid # BidirectionInDomain
+# 3.525 μs (11 allocations: 288 bytes)
+# 3.100 μs (0 allocations: 0 bytes) # use parameters in BidirectionInDomain
+# 3.038 μs (0 allocations: 0 bytes) # re-introduce column swapping
+@btime bid(30.4, 50.2)
+
+
+
+function pro()
+    for i = 0:10e4
+        uxy(30.4, 50.2)
+    end
+end
+@profview_allocs pro()
+
+
+pt = (100, 110)
+uxy.baxy.bid.bdog(pt...)
+
+# 1.010 μs (6 allocations: 528 bytes)
+# 990.000 ns (6 allocations: 608 bytes)
+@btime uxy.baxy.bid.bdog(100, 110)
+bdog = uxy.baxy.bid.bdog
+# 759.322 ns (0 allocations: 0 bytes)
+@btime bdog(100, 110)
+
+=#

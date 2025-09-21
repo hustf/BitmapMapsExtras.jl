@@ -66,9 +66,6 @@ end
 
 """
     plot_curvature_glyphs(z, pts; gs = GSTensor())
-    plot_curvature_glyphs!(img, z, pts; gs = GSTensor())
-    plot_curvature_glyphs!(cov::Matrix{Float32}, z, pts, directions, gs::GSTensor)
-    plot_curvature_glyphs!(img, gs::GSTensor, pts, values)
 """
 function plot_curvature_glyphs(z, pts; gs = GSTensor())
     # Allocate an empty color image (since user didn't supply one)
@@ -76,6 +73,12 @@ function plot_curvature_glyphs(z, pts; gs = GSTensor())
     # Modify the image
     plot_curvature_glyphs!(img, z, pts; gs)
 end
+
+"""
+    plot_curvature_glyphs!(img, z, pts; gs = GSTensor())
+    plot_curvature_glyphs!(cov::Matrix{Float32}, z, pts, directions, gs::GSTensor)
+    plot_curvature_glyphs!(img, gs::GSTensor, pts, values)
+"""
 function plot_curvature_glyphs!(img, z, pts; gs = GSTensor())
     if length(gs.directions) == 1
         # Coverage buffer
@@ -103,7 +106,9 @@ function  plot_curvature_glyphs!(cov::T, z, pts, gs::GSTensor) where T<:Union{Ma
     end
     cov
 end
-function plot_curvature_glyphs!(img, gs::GSTensor, pts, checked_values)
+# This method is called by 'pack_curvature_glyphs`, since 
+# values are already calculated.
+function plot_curvature_glyphs!(img, gs::GSTensor, pts, vK)
     if length(gs.directions) == 1
         # Coverage buffer
         cov = zeros(Float32, size(img)...)
@@ -112,12 +117,24 @@ function plot_curvature_glyphs!(img, gs::GSTensor, pts, checked_values)
         cov = [zeros(Float32, size(img)...), zeros(Float32, size(img)...)]
     end
     # Modify cover(s)
-    plot_curvature_glyphs!(cov, gs, pts, checked_values)
+    plot_curvature_glyphs!(cov, gs, pts, vK)
     # Apply to img in specified color(s)
     apply_color_by_coverage!(img, cov, gs)
     img
 end
 
+# This is the two-colour method
+#=
+ [1] plot_curvature_glyphs!(cov::Vector{…}, gs::GSTensor, pts::Vector{…}, checked_values::Vector{…})
+   @ BitmapMapsExtras C:\Users\f\.julia\dev\BitmapMapsExtras\src\calculate_and_draw_glyphs.jl:128
+ [2] plot_curvature_glyphs!(img::Matrix{…}, gs::GSTensor, pts::Vector{…}, vK::Vector{…})
+   @ BitmapMapsExtras C:\Users\f\.julia\dev\BitmapMapsExtras\src\calculate_and_draw_glyphs.jl:122
+ [3] pack_curvature_glyphs!(img::Matrix{…}, z::Matrix{…}, gs::GSTensor; scatterdist::Float32, seed::MersenneTwister)
+   @ Main c:\Users\f\.julia\dev\BitmapMapsExtras\test\t_calculate_and_draw_glyphs.jl:392
+ [4] pack_curvature_glyphs(z::Matrix{Float64}, gs::GSTensor; scatterdist::Float32, seed::MersenneTwister)
+   @ Main c:\Users\f\.julia\dev\BitmapMapsExtras\test\t_calculate_and_draw_glyphs.jl:397
+ [5] pack_curvature_glyphs(z::Matrix{Float64}, gs::GSTensor)
+=#
 function plot_curvature_glyphs!(cov::T, gs::GSTensor, pts, checked_values) where T<:Vector{Matrix{Float32}}
     @assert length(pts) == length(checked_values)
     # Plot curvature glyphs for internal points one at a time
@@ -131,10 +148,21 @@ function plot_curvature_glyphs!(cov::T, gs::GSTensor, pts, checked_values) where
     cov
 end
 
+# This is the one-colour method
+#=
+ [1] plot_curvature_glyphs!(cov::Vector{…}, gs::GSTensor, pts::Vector{…}, checked_values::Vector{…})
+   @ BitmapMapsExtras C:\Users\f\.julia\dev\BitmapMapsExtras\src\calculate_and_draw_glyphs.jl:128
+ [2] plot_curvature_glyphs!(img::Matrix{…}, gs::GSTensor, pts::Vector{…}, vK::Vector{…})
+   @ BitmapMapsExtras C:\Users\f\.julia\dev\BitmapMapsExtras\src\calculate_and_draw_glyphs.jl:122
+ [3] pack_curvature_glyphs!(img::Matrix{…}, z::Matrix{…}, gs::GSTensor; scatterdist::Float32, seed::MersenneTwister)
+   @ Main c:\Users\f\.julia\dev\BitmapMapsExtras\test\t_calculate_and_draw_glyphs.jl:392
+ [4] pack_curvature_glyphs(z::Matrix{Float64}, gs::GSTensor; scatterdist::Float32, seed::MersenneTwister)
+   @ Main c:\Users\f\.julia\dev\BitmapMapsExtras\test\t_calculate_and_draw_glyphs.jl:397
+ [5] pack_curvature_glyphs(z::Matrix{Float64}, gs::GSTensor)
+=#
 function plot_curvature_glyphs!(cov::Matrix{Float32}, gs::GSTensor, pts, checked_values)
     # Plot curvature glyphs for internal points one at a time
     for (pt, K) in zip(pts, checked_values)
-        println(pt)
         # Scale and plot the single glyph
         v = gs.multip .* view(K, :, first(gsdirections))
         draw_bidirectional_quantity_glyph!(cov, pt, v, gs.strength)
@@ -147,6 +175,18 @@ end
 # Plot normal unit vector projection
 ####################################
 
+
+"""
+    plot_𝐧ₚ__glyphs(z, pts; gs = GSVector())
+"""
+function plot_𝐧ₚ_glyphs(z, pts; gs = GSVector())
+    # Allocate an empty color image (since user didn't supply one)
+    img = zeros(RGBA{N0f8}, size(z)...)
+    # Modify the image
+    plot_𝐧ₚ_glyphs!(img, z, pts; gs)
+end
+
+
 """
     plot_𝐧ₚ_glyphs!(img, z, pts; gs = GSVector())
     plot_𝐧ₚ_glyphs!(cov::Matrix{Float32}, z, pts; gs = GSVector())
@@ -156,45 +196,24 @@ function plot_𝐧ₚ_glyphs!(img, z, pts; gs = GSVector())
     # Coverage buffer
     cov = zeros(Float32, size(img)...)
     # Modify coverage 
-    plot_𝐧ₚ_glyphs!(cov, z, pts; gs)
+    plot_𝐧ₚ_glyphs!(cov, z, pts, gs)
     # To color
     apply_color_by_coverage!(img, cov, gs.color)
     img
 end
-function plot_𝐧ₚ_glyphs!(cov::Matrix{Float32}, z, pts; gs = GSVector())
-    # Allocate
+function plot_𝐧ₚ_glyphs!(cov::Matrix{Float32}, z, pts, gs::GSVector)
+    # Prepare
     Ri, Ω, v, _, _, _, _, _, _ = allocations_curvature(CartesianIndices(z))
     # Plot projected vector glyphs for internal points one at a time
-    plot_𝐧ₚ_glyphs!(cov, z, pts, Ri, Ω, v, gs)
-    cov
-end
-function plot_𝐧ₚ_glyphs!(cov::Matrix{Float32}, z, pts, Ri, Ω, v, gs)
-    # Plot projected vector glyphs for internal points one at a time
     for pt in filter(pt -> pt ∈ Ri, sort(vec(pts)))
-        # Find 𝐧ₚ in-place, mutates v.
-        # v is in the format (dz/dx, dz/dy)
+        # Find 𝐧ₚ in-place
         𝐧ₚ!(v, view(z, Ω .+ pt))
         # Scale and plot the single glyph
-        plot_𝐧ₚ_glyph!(cov, pt, v, gs)
+        plot_vector_glyph!(cov, pt, v, gs)
     end
     cov
 end
 
-# This method is placed here because it uses an 'internal' type,
-# whereas draw_direct is more general and might be moved to 
-# a separate package.
-function plot_𝐧ₚ_glyph!(cov, pt, v, gs)
-    if is_in_limits(gs, v)
-        Δj = Int(round(v[1]))
-        Δi = -Int(round(v[2]))
-        draw_vector!(cov, pt, Δi, Δj, gs.strength)
-    else
-        if dashsize > 0
-            # A dash instead of the out-of-limits vector glyph
-            spray!(cov, pt, gs.dashsize, gs.strength)
-        end
-    end
-end
 
 # This method is placed here because it uses an 'internal' type,
 # whereas draw_direct is more general and might be moved to 
