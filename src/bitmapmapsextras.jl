@@ -4,7 +4,7 @@ using BitmapMaps: scaleminmax00, line!, display_if_vscode, open_as_temp_in_imged
 import ImageFiltering
 import ImageFiltering.Kernel
 import ImageCore
-using ImageCore: N0f8, GrayA, RGBA, colormap, Gray, RGB, Lab, alpha
+using ImageCore: N0f8, GrayA, RGBA, colormap, Gray, RGB, Lab, alpha, Colorant
 import StaticArrays
 using StaticArrays: SVector, MVector, MMatrix, SMatrix
 import LinearAlgebra
@@ -18,6 +18,8 @@ import ColorSchemes
 using ColorSchemes: ColorScheme
 import OffsetArrays
 using OffsetArrays: OffsetMatrix
+import Random
+using Random: MersenneTwister, randperm
 
 # For streamlines
 import OrdinaryDiffEq
@@ -114,6 +116,7 @@ include("type_definitions/glyphspec_types.jl")
 include("visualization/draw_bidirectional_glyph.jl")
 include("visualization/draw_plane.jl")
 include("visualization/draw_vector_glyph.jl")
+include("visualization/pack_glyphs.jl")
 include("calculate_and_draw_glyphs.jl")
 include("calculate_and_draw_streamlines.jl")
 include("calculate_and_paint_curvature_type.jl")

@@ -62,7 +62,10 @@ Here we add other stuff. So far:
 
 ## Current progress
 
-Version 0.0.11 
+Version 0.0.12
+Add 'pack_glyphs' and restructure plotting function hierarchy. So far working for vectors, but more restructuring needed.
+
+Version 0.0.11 Add missed file
 
 Version 0.0.10 drops dependency ImageTransformations. Custom sub-pixel interpolations uses less memory allocation.
 

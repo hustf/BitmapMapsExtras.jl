@@ -5,12 +5,12 @@
 # Relies on constants KERN´´ and VΦ.
 
 """
-    principal_curvature_components(z::Matrix, pt::CartesianIndex)
+    principal_curvature_components(z::Matrix{<:AbstractFloat}, pt::CartesianIndex)
 
 Note that there is an alias 𝐊 for brevity.
 Use the '!' methods where speed matters.
 """
-function principal_curvature_components(z::Matrix, pt::CartesianIndex)
+function principal_curvature_components(z::Matrix{<:AbstractFloat}, pt::CartesianIndex)
     Ri, Ω, v, P, K, vα, vκ, vβ, lpc = allocations_curvature(CartesianIndices(z))
     if ! (pt ∈ Ri)
         # Too close to edge of z    

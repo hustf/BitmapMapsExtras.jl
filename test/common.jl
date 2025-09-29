@@ -2,7 +2,7 @@
 # 
 import BitmapMapsExtras.BitmapMaps
 using BitmapMapsExtras.BitmapMaps: scaleminmax, RGBA, N0f8
-using BitmapMapsExtras:  PALETTE_BACKGROUND, Lab, RGB
+using BitmapMapsExtras:  PALETTE_BACKGROUND, Lab, RGB, GlyphSpec
 import BitmapMapsExtras.TestMatrices
 using SHA # Test dependency, temporarily added as a direct dependency.
 
@@ -233,5 +233,15 @@ function convert_to_list_of_arguments(args)
     #@show typeof(args)
     #@show args
     throw(ErrorException("Unrecognized format for `args`"))
+end
+
+
+
+"""
+    pack_glyphs_with_background(z::Matrix{<:AbstractFloat}, gs::GlyphSpec; scatterdist = gs.dashsize, seed = MersenneTwister(123))
+"""
+function pack_glyphs_with_background(z::Matrix{<:AbstractFloat}, gs::GlyphSpec; scatterdist = gs.dashsize, seed = MersenneTwister(123))
+    img = background(z)
+    pack_glyphs!(img, z, gs; scatterdist, seed)
 end
 nothing

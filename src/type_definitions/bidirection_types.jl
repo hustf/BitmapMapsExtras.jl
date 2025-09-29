@@ -42,7 +42,7 @@ struct BidirectionInDomain{F, T, LC}
     lastvalue::TENSORMAP
 end
 # Constructor
-function BidirectionInDomain(fdir!, z::AbstractMatrix{<:Number})
+function BidirectionInDomain(fdir!, z::Matrix{<:AbstractFloat})
     # Can generate a zero corner value (a 4x4), mutable
     # Establish four mutable corners in a static matrix 
     corners = SMatrix{2, 2, TENSORMAP, 4}([TENSORMAP(zeros(Float64, 2, 2)) for i in 1:2, j in 1:2] )

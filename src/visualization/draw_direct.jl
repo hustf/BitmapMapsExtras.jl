@@ -201,9 +201,9 @@ LogMapper() = LogMapper(N0f8(1/log1p(10)), 0N0f8)
 
 
 """
-    apply_color_by_coverage!(img, cov, rgb
+    apply_color_by_coverage!(img, cov::Matrix{Float32}, rgb::RGB)
 """
-function apply_color_by_coverage!(img, cov, rgb)
+function apply_color_by_coverage!(img, cov::Matrix{Float32}, rgb::RGB)
     # Nonlinear 'coverage' {Float32} to alpha {N0f8}. Default values for now.
     mapper = LogMapper()
     f = x -> RGBA{N0f8}(rgb.r, rgb.g, rgb.b, mapper(x))

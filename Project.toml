@@ -1,7 +1,7 @@
 name = "BitmapMapsExtras"
 uuid = "91f7643b-a5d6-413a-971e-f956c21a1050"
 authors = ["hustf <hustf@users.noreply.github.com> and contributors"]
-version = "0.0.11"
+version = "0.0.12"
 
 [deps]
 BitmapMaps = "dcf5437e-85d8-460a-98f8-69920db83c61"
@@ -14,6 +14,10 @@ LinearSolve = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"
 OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 OrdinaryDiffEqCore = "bbf590c4-e513-4bbe-9b18-05decba2e5d8"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SciMLBase = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+
+[compat]
+Random = "1.11.0"

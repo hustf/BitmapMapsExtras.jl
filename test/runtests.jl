@@ -28,6 +28,9 @@ end
     @testset "paint curvature  type" begin
         include("t_paint_curvature_type.jl")
     end
+    @testset "pack glyphs" begin
+        include("t_pack.jl")
+    end
 end
 
 @testset "differential equations" begin

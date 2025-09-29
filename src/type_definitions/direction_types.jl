@@ -37,7 +37,7 @@ struct DirectionInDomain{F, T}
     lastvalue::MVector{2, Float64}
 end
 # Constructor
-function DirectionInDomain(fdir!, z::AbstractMatrix{<:AbstractFloat})
+function DirectionInDomain(fdir!, z::Matrix{<:AbstractFloat})
     dog = DirectionOnGrid(fdir!, z)
     lastvalue = zero(MVector{2, Float64})
     DirectionInDomain(dog, lastvalue)
