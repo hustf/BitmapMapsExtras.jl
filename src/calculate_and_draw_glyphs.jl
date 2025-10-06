@@ -67,15 +67,15 @@ end
 #######################
 
 """
-    plot_glyphs(z, pts, gs::GlyphSpec)
+    plot_glyphs(z, pts, gs::S) where S<:GlyphSpec
 """
-function plot_glyphs(z::Matrix{<:AbstractFloat}, pts, gs::GlyphSpec)
+function plot_glyphs(z::Matrix{<:AbstractFloat}, pts, gs::S) where S<:GlyphSpec
     # Allocate an empty color image (since user didn't supply one)
     img = zeros(RGBA{N0f8}, size(z)...)
     # Modify the image
     plot_glyphs!(img, z, pts, gs)
 end
-function plot_glyphs!(img::Matrix{<:Colorant{N0f8, 4}}, z::Matrix{<:AbstractFloat}, pts, gs::GlyphSpec) 
+function plot_glyphs!(img::Matrix{<:Colorant}, z::Matrix{<:AbstractFloat}, pts, gs::S) where S<:GlyphSpec
     # This layer in the call hierarchy: img-> cov -> img
     cov = coverage_fitting_image(img, gs)
     # Modify cover buffer(s)
@@ -84,7 +84,8 @@ function plot_glyphs!(img::Matrix{<:Colorant{N0f8, 4}}, z::Matrix{<:AbstractFloa
     apply_color_by_coverage!(img, cov, gs)
     img
 end
-function plot_glyphs!(img::Matrix{<:Colorant{N0f8, 4}}, b::U, pts, gs::GlyphSpec) where U <:Union{BidirectionOnGrid, DirectionOnGrid}
+function plot_glyphs!(img::Matrix{<:Colorant}, b::U, pts, gs::S) where 
+    {U <:Union{BidirectionOnGrid, DirectionOnGrid}, S<:GlyphSpec}
     # This layer in the call hierarchy: img-> cov -> img
     cov = coverage_fitting_image(img, gs)
     # Modify cover buffer(s)
@@ -93,7 +94,8 @@ function plot_glyphs!(img::Matrix{<:Colorant{N0f8, 4}}, b::U, pts, gs::GlyphSpec
     apply_color_by_coverage!(img, cov, gs)
     img
 end
-function plot_glyphs!(cov::T, z::Matrix{<:AbstractFloat}, pts, gs::GlyphSpec) where T<:Union{Matrix{Float32}, Vector{Matrix{Float32}}}
+function plot_glyphs!(cov::T, z::Matrix{<:AbstractFloat}, pts, gs::S) where 
+    {T<:Union{Matrix{Float32}, Vector{Matrix{Float32}}}, S<:GlyphSpec}
     # This makes a functor for z (containing the z values) and passes it on.
     throw("No default functor implemented for $(typeof(gs))")
 end
@@ -107,8 +109,10 @@ function plot_glyphs!(cov::Matrix{Float32}, z::Matrix{<:AbstractFloat}, pts, gs:
     d = DirectionOnGrid(𝐧ₚ!, z)
     plot_glyphs!(cov, d, pts, gs)
 end
-function plot_glyphs!(cov::T, b::U, pts, gs::GlyphSpec) where 
-    {T<:Union{Matrix{Float32}, Vector{Matrix{Float32}}}, U <:Union{BidirectionOnGrid, DirectionOnGrid}}
+function plot_glyphs!(cov::T, b::U, pts, gs::S) where 
+    {T<:Union{Matrix{Float32}, Vector{Matrix{Float32}}}, 
+    U <:Union{BidirectionOnGrid, DirectionOnGrid},
+    S <: GlyphSpec}
     # This plots a glyph at each pt without storing the values.
     # No domain checking.
     for pt in pts
@@ -123,9 +127,9 @@ end
 ##########################
 
 """
-    plot_glyphs_given_values(pts, values, gs::GlyphSpec)
+    plot_glyphs_given_values(pts, values, gs::S) where S<:GlyphSpec
 """
-function plot_glyphs_given_values(pts, values, gs::GlyphSpec,)
+function plot_glyphs_given_values(pts, values, gs::S) where S<:GlyphSpec
     # Allocate an empty color image (since user didn't supply one)
     img = zeros(RGBA{N0f8}, size(z)...)
     # Modify the image
@@ -133,21 +137,21 @@ function plot_glyphs_given_values(pts, values, gs::GlyphSpec,)
 end
 
 """
-    plot_glyphs_given_values!(img, pts, values, gs::U) where U<:GlyphSpec
-    plot_glyphs_given_values!(cov::T, pts, values, gs::U) where 
-    {T<:Union{Matrix{Float32}, Vector{Matrix{Float32}}}, U<:GlyphSpec}
+    plot_glyphs_given_values!(img, pts, values, gs::S) where S<:GlyphSpec
+    plot_glyphs_given_values!(cov::T, pts, values, gs::S) where 
+    {T<:Union{Matrix{Float32}, Vector{Matrix{Float32}}}, S<:GlyphSpec}
 """
-function plot_glyphs_given_values!(img, pts, values, gs::U) where U<:GlyphSpec
+function plot_glyphs_given_values!(img, pts, values, gs::S) where S<:GlyphSpec
     # This layer in the call hierarchy: img-> cov -> img
     cov = coverage_fitting_image(img, gs)
     # Modify cover buffer(s)
     plot_glyphs_given_values!(cov, pts, values, gs)
     # Cover ('unlimited coverage') maped to colors
-    apply_color_by_coverage!(img, cov, gs.color)
+    apply_color_by_coverage!(img, cov, gs)
     img
 end
-function plot_glyphs_given_values!(cov::T, pts, values, gs::U) where 
-    {T<:Union{Matrix{Float32}, Vector{Matrix{Float32}}}, U<:GlyphSpec}
+function plot_glyphs_given_values!(cov::T, pts, values, gs::S) where 
+    {T<:Union{Matrix{Float32}, Vector{Matrix{Float32}}}, S<:GlyphSpec}
     @assert length(values) == length(pts)
     # This plots a glyph at each pt without storing the value
     for (pt, value) in zip(pts, values)
@@ -219,9 +223,9 @@ function plot_curvature_glyphs!(cov::T, gs::GSTensor, pts, checked_values) where
     for (pt, K) in zip(pts, checked_values)
         # Scale and plot the single glyph
         v1 = gs.multip .* view(K, :, 1)
-        draw_bidirectional_quantity_glyph!(cov[1], pt, v1, gs.strength)
+        draw_bidirectional_vector_glyph_given_value!(cov[1], pt, v1, gs.strength)
         v2 = gs.multip .* view(K, :, 2)
-        draw_bidirectional_quantity_glyph!(cov[2], pt, v2, gs.strength)
+        draw_bidirectional_vector_glyph_given_value!(cov[2], pt, v2, gs.strength)
     end
     cov
 end
@@ -244,7 +248,7 @@ function plot_curvature_glyphs!(cov::Matrix{<:AbstractFloat}, gs::GSTensor, pts,
     for (pt, K) in zip(pts, checked_values)
         # Scale and plot the single glyph
         v = gs.multip .* view(K, :, first(gsdirections))
-        draw_bidirectional_quantity_glyph!(cov, pt, v, gs.strength)
+        draw_bidirectional_vector_glyph_given_value!(cov, pt, v, gs.strength)
     end
     cov
 end
@@ -302,10 +306,10 @@ end
 # whereas draw_direct is more general and might be moved to 
 # a separate package.
 """
-    apply_color_by_coverage!(img, cov, gs::GlyphSpec)
+    apply_color_by_coverage!(img, cov, gs::S) where S<:GlyphSpec
     apply_color_by_coverage!(img, cov, gs::GSTensor)
 """
-function apply_color_by_coverage!(img, cov, gs::GlyphSpec)
+function apply_color_by_coverage!(img, cov, gs::S) where S<:GlyphSpec
     apply_color_by_coverage!(img, cov, gs.color)
 end
 function apply_color_by_coverage!(img, cov, gs::GSTensor)
@@ -321,10 +325,10 @@ end
 
 
 """
-    coverage_fitting_image(img, gs::GlyphSpec)
+    coverage_fitting_image(img, gs::S) where S<:GlyphSpec
     coverage_fitting_image(img, gs::GSTensor)
 """
-coverage_fitting_image(img, gs::GlyphSpec) = zeros(Float32, size(img)...)
+coverage_fitting_image(img, gs::S) where S<:GlyphSpec = zeros(Float32, size(img)...)
 function coverage_fitting_image(img, gs::GSTensor)
     if length(gs.directions) == 1
         # Coverage buffer

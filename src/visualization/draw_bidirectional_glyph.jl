@@ -2,21 +2,22 @@
 # builds on `draw_direct.jl` and `BitmapMaps.jl/mark_utils.jl`.
 # Tied in with how we define a matrix format for bidirectional quantity 
 # pairs in `differential_geom/curvature.jl`
-# Contains `plot_principal_directions_glyph!` and `draw_bidirectional_quantity_glyph!` 
+# Contains `plot_principal_directions_glyph!` and `draw_bidirectional_vector_glyph_given_value!` 
 # and callee `draw_two_arrow_glyph!`
 
 """
     plot_principal_directions_glyph!(cov, pt, K, gs::GSTensor)
     plot_principal_directions_glyph!(vcov::Vector{Matrix{Float32}}, pt, K, gs::GSTensor)
 
-Also see `draw_bidirectional_quantity_glyph!`
+Also see `draw_bidirectional_vector_glyph_given_value!`
 """
 function plot_principal_directions_glyph!(cov, pt, K, gs::GSTensor)
      @assert length(gs.directions) == 1
+     throw("dead, use 'plot_glyph_given_value")
     # Extract primary and / or secondary principal components
     if is_in_limits(gs, K)
         v = gs.multip .* view(K, :, first(gs.directions))
-        draw_bidirectional_quantity_glyph!(cov, pt, v, gs.strength)
+        draw_bidirectional_vector_glyph_given_value!(cov, pt, v, gs.strength)
     else
         # A dash instead of the out-of-limits glyph
         if gs.dashsize > 0
@@ -32,9 +33,9 @@ function plot_principal_directions_glyph!(vcov::Vector{Matrix{Float32}}, pt, K, 
     # Extract primary and / or secondary principal components
     if is_in_limits(gs, K)
         v1 = gs.multip .* view(K, :, 1)
-        draw_bidirectional_quantity_glyph!(vcov[1], pt, v1, gs.strength)
+        draw_bidirectional_vector_glyph_given_value!(vcov[1], pt, v1, gs.strength)
         v2 = gs.multip .* view(K, :, 2)
-        draw_bidirectional_quantity_glyph!(vcov[2], pt, v2, gs.strength)
+        draw_bidirectional_vector_glyph_given_value!(vcov[2], pt, v2, gs.strength)
     else
         # A dash instead of the out-of-limits glyph
         if gs.dashsize > 0
@@ -47,7 +48,7 @@ end
 
 
 """
-    draw_bidirectional_quantity_glyph!(cov, p, v, strength)
+    draw_bidirectional_vector_glyph_given_value!(cov, p, v, strength)
 
 This function modifies `cov` in-place. Called by `plot_principal_directions_glyph!`
 
@@ -76,7 +77,7 @@ julia> begin # The shape is hardly visble on this small scale.
     p = CartesianIndex((6, 6))    # Center position
     v = [4.75, 3.75]              # Example bi-directional vector
     strength = 0.5f0
-    draw_bidirectional_quantity_glyph!(cov, p, v, strength)
+    draw_bidirectional_vector_glyph_given_value!(cov, p, v, strength)
 end
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.5
@@ -91,12 +92,12 @@ end
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
 ```
 """
-draw_bidirectional_quantity_glyph!(cov, p, v, strength) =  draw_two_arrow_glyph!(cov, p, v, strength)
+draw_bidirectional_vector_glyph_given_value!(cov, p, v, strength) =  draw_two_arrow_glyph!(cov, p, v, strength)
 
 """
     draw_two_arrow_glyph!(cov, p, v::AbstractVector, strength::Float32)
 
-See `draw_bidirectional_quantity_glyph!`.
+See `draw_bidirectional_vector_glyph_given_value!`.
 
 v[1:2] specifies both direction and sign. 
     0-π:  Positive sign, arrows outward.   

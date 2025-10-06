@@ -1,8 +1,6 @@
 using Test
 using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
-using BitmapMapsExtras: plot_tangent_basis_glyphs, plot_tangent_basis_glyphs!
-using BitmapMapsExtras: plot_curvature_glyphs, plot_curvature_glyphs!
 using BitmapMapsExtras: plot_glyphs!, plot_glyphs, PALETTE_GRGB
 using BitmapMapsExtras: BidirectionOnGrid, 𝐊!, Domain, TENSORMAP
 using BitmapMapsExtras: GSTensor, GSTangentBasis, GSVector, GlyphSpec
@@ -88,9 +86,9 @@ grid_fcall_with_background(plot_glyphs!, args, z = z_exp3())
 
 # Curvature glyphs, direct call
 
-plot_curvature_glyphs(z_ellipsoid(; tilt = π / 4), grid_indices((999, 999)); gs = GSTensor(;multip = 30000, directions = 1))
-plot_curvature_glyphs(z_ellipsoid(; tilt = π / 4), grid_indices((999, 999)); gs = GSTensor(;multip = 30000, directions = 2))
-plot_curvature_glyphs(z_ellipsoid(; tilt = π / 4), grid_indices((999, 999)); gs = GSTensor(;multip = 30000, directions = 1:2))
+plot_glyphs(z_ellipsoid(; tilt = π / 4), grid_indices((999, 999)), GSTensor(;multip = 30000, directions = 1))
+plot_glyphs(z_ellipsoid(; tilt = π / 4), grid_indices((999, 999)), GSTensor(;multip = 30000, directions = 2))
+plot_glyphs(z_ellipsoid(; tilt = π / 4), grid_indices((999, 999)), GSTensor(;multip = 30000, directions = 1:2))
 
 # Curvature glyphs, indirect call
 
@@ -219,7 +217,6 @@ pack_glyphs_with_background(z_paraboloid(), GSVector())
 
 
 # Packed curvature
-# TODO: Fix this! It worked before K -> value
 # Used to pass 5 glyphs
 # Then, compare if Any[] slows things down....
 img = pack_glyphs_with_background(z_sphere()[100:300, 100:300], GSTensor(multip = 12000)) 
@@ -261,7 +258,6 @@ pack_glyphs!(img, z_ridge_peak_valleys(), GSTensor(multip = 4000), seed = Mersen
 
 
 # Packed gradient
-# STACK OVERFLOW
 pack_glyphs_with_background(z_paraboloid()[1:100, 1:100], GSVector(multip = 15000))
 
 
@@ -288,3 +284,12 @@ end
 
 
 # DEV function signatures
+
+
+b = BidirectionOnGrid(𝐊!, z_cos(; mult = 50)[400:600, 400:600])
+img = background(z_cos(; mult = 50)[400:600, 400:600])
+#length(passed_placements) = 11
+#  0.010389 seconds (90.91 k allocations: 5.896 MiB)
+@time pack_glyphs!(img, b, GSTensor(multip = 15000))
+
+pack_glyphs_with_background(z_paraboloid()[1:100, 1:100], GSVector(multip = 15000))

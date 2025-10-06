@@ -10,7 +10,7 @@
 
 
 """
-    draw_vector!(cov::T, A::CartesianIndex{2}, Δi, Δj,  strength::Float32) where T<:AbstractMatrix{Float32}
+    draw_vector!(cov::Matrix{Float32}, A::CartesianIndex{2}, Δi::Int, Δj::Int, strength::Float32)
 
 Draws a line from A to B in the given coverage matrix. Edges are blurry. At A, maximum radius is 
 
@@ -20,7 +20,7 @@ where `l` = √(Δi²+Δj²).
 
 See LogMapper for conversion of `cov`` to an image.
 """
-function draw_vector!(cov::T, A::CartesianIndex{2}, Δi::Int, Δj::Int, strength::Float32) where T<:AbstractMatrix{Float32}
+function draw_vector!(cov::Matrix{Float32}, A::CartesianIndex{2}, Δi::Int, Δj::Int, strength::Float32)
     #
     i1, j1 = Tuple(A)
     li = abs(Δi)
@@ -33,6 +33,7 @@ function draw_vector!(cov::T, A::CartesianIndex{2}, Δi::Int, Δj::Int, strength
     l = hypot(Δi, Δj)
     # Max radius
     rA = Float32(max(0.5, VECTOR_REL_HALFWIDTH * l))
+    # Min radius
     rB = min(0.5f0, rA)
     # Zero vector
     if Δi == 0 && Δj == 0
@@ -122,7 +123,7 @@ end
 
 
 """
-    spray!(cov::AbstractMatrix{Float32},
+    spray!(cov::Matrix{Float32},
                 centre::CartesianIndex{2},
                 r::Float32,
                 strength::Float32)
@@ -142,10 +143,10 @@ This is modified for 0 < r < 1 to keep additional coverage roughly proportional 
 
 Returns the mutated `cov` (for chaining).
 """
-function spray!(cov::T,
+function spray!(cov::Matrix{Float32},
                 centre::CartesianIndex{2},
                 r::Float32,
-                strength::Float32) where T <: AbstractMatrix{Float32}
+                strength::Float32)
     @assert 0f0 < r ≤ 100f0        "radius r must be in (0,100], is $r"
     @assert strength ≥ 0f0         "strength must be non‑negative"
     m   = Int(floor(r))

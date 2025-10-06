@@ -62,6 +62,9 @@ Here we add other stuff. So far:
 
 ## Current progress
 
+Version 0.0.13
+Added more crash tests for 'pack_glyphs'. Mostly working, but static dispatch on tensor glyph directions would be useful. Currently, packing 2d vectors will trigger an error. We plan to revise the GSTensor type.
+
 Version 0.0.12
 Add 'pack_glyphs' and restructure plotting function hierarchy. So far working for vectors, but more restructuring needed.
 
