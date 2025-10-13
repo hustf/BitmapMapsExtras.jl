@@ -9,7 +9,15 @@
  # DirectionOnGrid
  # DirectionInDomain
 
-struct DirectionOnGrid{F, T}
+ """
+Supertype for functors with an on grid, discrete i, j domain,
+where i is pixel index from image top, j index is image right.
+Used for dispatch in plotting.
+"""
+abstract type AbstractIJFunctor end
+
+
+struct DirectionOnGrid{F, T} <: AbstractIJFunctor
     Ω::CartesianIndices{2, Tuple{UnitRange{Int64}, UnitRange{Int64}}}# Square neighborhood
     fdir!::F # e.g 𝐧ₚ!(v, M)
     z::Matrix{T} # Image-sized
@@ -73,12 +81,14 @@ function (did::DirectionInDomain)(x, negy)
 end
 @define_show_with_fieldnames DirectionInDomain
 
-
-
-abstract type DirectionFunctor end
+"""
+Supertype for functors with a continuous x-y up domain space.
+Used for dispatch in differential equation solving.
+"""
+abstract type AbstractXYFunctor end
 
 """
-    struct DirectionAtXY <: DirectionFunctor
+    struct DirectionAtXY <: AbstractXYFunctor
         did::DirectionInDomain
         negy::NegateY
         d::Domain
@@ -96,7 +106,7 @@ This is a top-level abstraction encompassing the types
    Domain 
    NegateY
 """
-struct DirectionAtXY{F, T} <: DirectionFunctor
+struct DirectionAtXY{F, T} <: AbstractXYFunctor
     did::DirectionInDomain{F, T}
     negy::NegateY
     d::Domain

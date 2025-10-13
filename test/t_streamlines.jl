@@ -3,6 +3,7 @@ using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
 using BitmapMapsExtras: plot_streamlines!, 𝐧ₚ!, 𝐧ₚᵤ!, PALETTE_GRGB
 using BitmapMapsExtras: spray!, apply_color_by_coverage!, RGB
+using BitmapMapsExtras: indices_on_grid
 import BitmapMaps
 using BitmapMaps: mark_at!, divergence_of_gradients
 import StatsBase
@@ -11,6 +12,9 @@ import Random
 using Random: MersenneTwister
 
 !@isdefined(hashstr) && include("common.jl")
+
+# WIP BROKEN (dropping the temporary interface in test/common.jl)
+
 
 
 @testset "Streamlines normal projected" begin
@@ -47,27 +51,27 @@ using Random: MersenneTwister
     @test hashstr(img) == "d1de5a9d82037598d751200f84db3a85195b37cd"
     # Short streamlines down from grid points
     args = ((𝐧ₚᵤ!,), (;dtmax = 5, tstop = 200,  rgb = PALETTE_GRGB[3] ))
-    pts = grid_indices(size(img))
+    pts = indices_on_grid(size(img))
     img = fcall_with_background(plot_streamlines!, args, z_ridge_peak_valleys(), pts )
     mark_at!(img, pts, 5, "in_circle")
     @test hashstr(img) == "252c73338cd11459655287a32ac42adf71fe9bd7"
     # Short streamlines up from grid points
     args = ((𝐧ₚᵤ!,), (;dtmax = 5, tstop = -200,  rgb = PALETTE_GRGB[4] ))
-    pts = grid_indices(size(img))
+    pts = indices_on_grid(size(img))
     img = fcall_with_background(plot_streamlines!, args, z_ridge_peak_valleys(), pts )
     mark_at!(img, pts, 5, "in_circle")
     @test hashstr(img) == "6b1c48121f1758eb05460cbb1d1b3332c63ae1eb"
     # Short streamlines in both directions from grid points
     args = [((𝐧ₚᵤ!,), (;dtmax = 5, tstop = 100,  rgb = PALETTE_GRGB[3] )),
             ((𝐧ₚᵤ!,), (;dtmax = 5, tstop = -100, rgb = PALETTE_GRGB[4] ))]
-    pts = grid_indices(size(img))
+    pts = indices_on_grid(size(img))
     img = fcall_with_background(plot_streamlines!, args, z_ridge_peak_valleys(), pts )
     mark_at!(img, pts, 5, "in_circle")
     @test hashstr(img) == "e964414b7feed44e6d3ea3a464dbe82f8411d83c"
     # Many streamlines in both directions from grid points
     args = [((𝐧ₚᵤ!,), (;dtmax = 5, tstop = 200,  rgb = PALETTE_GRGB[3], strength = 0.06f0)),m n
             ((𝐧ₚᵤ!,), (;dtmax = 5, tstop = -200, rgb = PALETTE_GRGB[4], strength = 0.06f0 ))]
-    pts = grid_indices(size(img); Δ = 25)
+    pts = indices_on_grid(size(img); Δ = 25)
     img = fcall_with_background(plot_streamlines!, args, z_ridge_peak_valleys(), pts )
     mark_at!(img, pts, 3, "in_circle")
     @test hashstr(img) == "8aeaf33d8279abb03cc93bcbdcd127e24ec887d2"
@@ -123,7 +127,7 @@ daxy = DirectionAtXY(f, z)
 
 # Dive to the bottom
 using BitmapMapsExtras: DirectionOnGrid
-dog = DirectionOnGrid(𝐧ₚ!,  z)
+dog = DirectionOnGrid(𝐧ₚ!,  z) # better use  𝐧ₚᵤ!
 @inferred dog(100,200)
 # 74.177 ns (0 allocations: 0 bytes)
 @btime dog(100,200)

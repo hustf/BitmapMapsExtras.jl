@@ -1,110 +1,76 @@
 # Smartly spaced glyphs
+# These eliminate placements until
+# no glyphs overlap.
+
 """
-    potential_scattered_placements(R::CartesianIndices; avgdist = 10, seed = MersenneTwister(123))
-    --> Vector{CartesianIndex}
+    coarse_radius_for_plotting(gs::GSTensor{D12, 2}, K)
+    coarse_radius_for_plotting(gs::GSTensor{D, 1}, K) where D
+    coarse_radius_for_plotting(gs::GSVector, v)
 
-Return a vector of random CartesianIndex scattered within `R` such that the
-mean nearest-neighbour distance is approximately `avgdist`. Refer Poisson disk sampling.
-
-# Arguments
-
-- `R` defines the possible values of each returned index. 
-- `avgdist` (default keyword value 10.0) is the mean nearest-neighbour distance between points. The 
-    resulting set of points will vary slightly from this target.
+# Example
+```
+julia> coarse_radius_for_plotting(gs::GSTensor{D12, 2}, K)
+```
 """
-function potential_scattered_placements(R::CartesianIndices; avgdist = 10.0, seed = MersenneTwister(123))
-    area = length(R)
-    # Estimate number of points, within bounds.
-    n = max(1, min(round(Int, area / (4 * avgdist^2)), area))
-    # Draw random unique indices
-    chosen = randperm(seed, area)[1:n]
-    [R[i] for i in chosen]
-end
-
-function potential_scattered_placements(fz::T, gs::U; scatterdist = gs.dashsize, seed = MersenneTwister(123)) where
-    {T<: Union{BidirectionOnGrid, DirectionOnGrid}, U<:GlyphSpec}
-    #
-    R = CartesianIndices(fz.z)
-    Ω = fz.Ω
-    minj = R[1][2] - Ω[1][2]
-    maxi = R[end][1] - Ω[end][2]
-    maxj = R[end][2] - Ω[end][2]
-    mini = R[1][1] - Ω[1][2]
-    Ri = CartesianIndices((mini:maxi, minj:maxj))
-    potential_scattered_placements(Ri; avgdist = scatterdist, seed)
-end
-
-function coarse_radius_for_plotting(gs::GSTensor, K)
+function coarse_radius_for_plotting(gs::GSTensor{D12, 2}, K)
+    # Method for both axes-glyph
     # Extract the half-length of primary and secondary principal direction
     # glyphs
     if is_in_limits(gs, K)
-        if length(gs.directions) == 1
-            v = @view K[:, first(gs.directions)]
-            l1 = norm(v) * gs.multip
-            if is_bidirec_vect_positive(v)
-                # Add min radius
-                Δl = min(0.5, VECTOR_REL_HALFWIDTH * l1)
-            else
-                # Add max radius
-                Δl = max(0.5, VECTOR_REL_HALFWIDTH * l1)
-            end
-            dist = l1 + Δl
+        v1 = @view K[:, 1]
+        v2 = @view K[:, 2]
+        l1 = norm(v1) * gs.multip
+        l2 = norm(v2) * gs.multip
+        if is_bidirec_vect_positive(v1)
+            # Add min radius
+            Δl1 = min(0.5, VECTOR_REL_HALFWIDTH * l1)
         else
-            v1 = @view K[:, 1]
-            v2 = @view K[:, 2]
-            l1 = norm(v1) * gs.multip
-            l2 = norm(v2) * gs.multip
-            if is_bidirec_vect_positive(v1)
-                # Add min radius
-                Δl1 = min(0.5, VECTOR_REL_HALFWIDTH * l1)
-            else
-                # Add max radius
-                Δl1 = max(0.5, VECTOR_REL_HALFWIDTH * l1)
-            end
-            if is_bidirec_vect_positive(v2)
-                # Add min radius
-                Δl2 = min(0.5, VECTOR_REL_HALFWIDTH * l2)
-            else
-                # Add max radius
-                Δl2 = max(0.5, VECTOR_REL_HALFWIDTH * l2)
-            end
-            dist = max(l1 + Δl1, l2 + Δl2)
+            # Add max radius
+            Δl1 = max(0.5, VECTOR_REL_HALFWIDTH * l1)
         end
+        if is_bidirec_vect_positive(v2)
+            # Add min radius
+            Δl2 = min(0.5, VECTOR_REL_HALFWIDTH * l2)
+        else
+            # Add max radius
+            Δl2 = max(0.5, VECTOR_REL_HALFWIDTH * l2)
+        end
+        return max(l1 + Δl1, l2 + Δl2)
     else
         # We return 0, because we do not want
         # this potential glyph to be one of the selected ones.
-        dist = 0.0
+        return 0.0
     end
-    # Anchor point to tip
-    return dist
+end
+function coarse_radius_for_plotting(gs::GSTensor{D, 1}, K) where D
+    # Method for single-axis glyph
+    # Extract the half-length of primary and secondary principal direction
+    # glyphs
+    if is_in_limits(gs, K)
+        v1 = @view K[:, D]
+        l1 = norm(v1) * gs.multip
+        if is_bidirec_vect_positive(v1)
+            # Add min radius
+            Δl = min(0.5, VECTOR_REL_HALFWIDTH * l1)
+        else
+            # Add max radius
+            Δl = max(0.5, VECTOR_REL_HALFWIDTH * l1)
+        end
+        return l1 + Δl
+    else
+        # We return 0, because we do not want
+        # this potential glyph to be one of the selected ones.
+        return 0.0
+    end
 end
 function coarse_radius_for_plotting(gs::GSVector, v)
     if is_in_limits(gs, v)
         norm(v) * gs.multip
     else
-        Float64(gs.dashsize)
+        # We return 0, because we do not want
+        # this potential glyph to be one of the selected ones.
+        return 0.0
     end
-end
-
-"""
-    intersection_distance_ellipse(x1, y1, x2, y2, α)
-
-Approximate distance from origin to ellipse boundary along ray at angle `α`.
-
-- `(x1, y1)` is assumed to lie on the major axis (used for orientation + length).
-- `(x2, y2)` only contributes its distance as semi-minor axis length.
-- `α` is ray angle in radians (CCW from x-axis).
-"""
-function intersection_distance_ellipse(x1, y1, x2, y2, α)
-    @warn "Drop this dead" maxlog = 100
-    throw("dead")
-    a = hypot(x1, y1)             # major radius
-    b = hypot(x2, y2)             # minor radius (approx)
-    @assert a >= b
-    θ = atan(y1, x1)              # orientation
-    ϕ = α - θ
-    denom = (cos(ϕ)^2)/a^2 + (sin(ϕ)^2)/b^2
-    return 1 / sqrt(denom)
 end
 
 """
@@ -164,8 +130,9 @@ function radial_distance_bidirectional_glyph(::Type{GSVector}, vscaled, α)
     dist
 end
 """
-    radial_distance_glyph(gs::GSTensor, K, α)
     radial_distance_glyph(gs::GSVector, v, α)
+    radial_distance_glyph(gs::GSTensor{D12, 2}, K, α)
+    radial_distance_glyph(gs::GSTensor{D, 1}, K, α) where D
     radial_distance_glyph(::Type{GSVector}, vscaled, α)
 
 Distance from a glyph's anchor point along a ray at angle `α` to eclipsing glyph boundary. 
@@ -178,24 +145,22 @@ The shape of the glyph is strictly convex.
 
 Here, we assume that glyph values are within limits.
 """
-function radial_distance_glyph(gs::GSTensor, K, α)
-    if length(gs.directions) == 1
-        dirno = first(gs.directions)
-        # Scale the single bidirectional vector's value
-        vscaled = gs.multip .* view(K, :, dirno)
-        return radial_distance_bidirectional_glyph(GSVector, vscaled, α)
-    else
-        @assert gs.directions == 1:2
-        # Scale the two glyph values
-        vs1 = gs.multip .* view(K, :, 1)
-        vs2 = gs.multip .* view(K, :, 2)
-        lv1 = radial_distance_bidirectional_glyph(GSVector, vs1, α)
-        lv2 = radial_distance_bidirectional_glyph(GSVector, vs2, α)
-        return max(lv1, lv2)
-    end
-end
 function radial_distance_glyph(gs::GSVector, v, α)
     radial_distance_glyph(GSVector, gs.multip .* v, α)
+end
+function radial_distance_glyph(gs::GSTensor{D12, 2}, K, α)
+    # Scale the two bidirectional vector glyph values
+    vs1 = gs.multip .* view(K, :, 1)
+    vs2 = gs.multip .* view(K, :, 2)
+    lv1 = radial_distance_bidirectional_glyph(GSVector, vs1, α)
+    lv2 = radial_distance_bidirectional_glyph(GSVector, vs2, α)
+    # Return the longest radial distance
+    return max(lv1, lv2)
+end
+function radial_distance_glyph(gs::GSTensor{D, 1}, K, α) where D
+    # Scale the single bidirectional vector's value
+    vscaled = gs.multip .* view(K, :, D)
+    return radial_distance_bidirectional_glyph(GSVector, vscaled, α)
 end
 function radial_distance_glyph(::Type{GSVector}, vscaled, α)
     l = norm(vscaled)
@@ -234,7 +199,8 @@ function radial_distance_glyph(::Type{GSVector}, vscaled, α)
 end
 
 """
-    too_close(gs::U, pt1, coarse_r, v1, pt2, coarse_r2, v2) where U<:GlyphSpec
+    too_close(gs::AbstractGlyphSpec, pt1, coarse_r1, v1, pt2, coarse_r2, v2)
+    too_close(gs::GSTangentBasis, pt1, pt2)
 
 ..If the potential glyph at pt1 would intersect with the
 already selected glyph at pt2.
@@ -242,86 +208,164 @@ already selected glyph at pt2.
 A coarse filtering should be done first. Here, we assume
 that glyph values are within limits. Input should be pre-filtered.
 """
-function too_close(gs::U, pt1, coarse_r, v1, pt2, coarse_r2, v2) where U<:GlyphSpec
+function too_close(gs::AbstractGlyphSpec, pt1, coarse_r1, v1, pt2, coarse_r2, v2)
     # Vector from pt1 to pt2
     u = pt2.I .- pt1.I
     # Length of u
     lu = norm(u)
     # Exclusive criterion - fast return
-    nooverlap = coarse_r + coarse_r2 <= lu  
+    nooverlap = coarse_r1 + coarse_r2 <= lu  
     nooverlap && return false
     # Vector u's angle to horizontal in x-y-up directions
     αu = atan(-u[1], u[2]) 
+    #
+    overlap_direct_path(gs, v1, v2, αu, lu) && return true
+    #
+    # Main axis of glyph 1. v1 is given in (x,y) frame
+    αm1 = atan(v1[2], v1[1])
+    # Main axis of glyph 2. v2 is given in (x,y) frame
+    αm2 = atan(v2[2], v2[1])
+    #
+    # All other checks works the same way: Find a straight sections
+    # path pt1 - pt - pt2. 
+    # between anchor points which is entirely within the two glyphs.
+    overlap_indirect(gs, pt1, v1, pt2, v2, αu, αm1, αm2)
+end
+function too_close(gs::GSTangentBasis, pt1, pt2)
+    # Vector from pt1 to pt2
+    u = pt2.I .- pt1.I
+    # Length of u
+    lu = norm(u)
+    # Criterion
+    2√2 * gs.halfsize > lu
+end
+
+
+"""
+    overlap_direct_path(gs, v1, v2, αu, lu)
+"""
+function overlap_direct_path(gs, v1, v2, αu, lu)
     # Intersection dist with pt1's boundary along u
     r1 = radial_distance_glyph(gs, v1, αu)
     # Intersection with glyph 2's boundary
     # A ray from pt2 to pt1 intersects glyph 2's extents at distance
     r2 = radial_distance_glyph(gs, v2, αu + π)
     # The glyphs overlap when
-    overlap_direct = r1 + r2 >  lu
-    overlap_direct && return true
-    # All other checks works the same way: Find an angled path 
-    # between anchor points which is entirely within the two glyphs.
-    # The interesting paths depend on the GlyphSpec type, and this trait:
-    
-    overlap_indirect(gs, pt1, v1, pt2, v2, αu)
+    r1 + r2 >  lu
 end
-function overlap_indirect(gs::U, pt1, v1, pt2, v2, αu) where U<:GlyphSpec
+
+"""
+    overlap_indirect(gs::AbstractGlyphSpec, pt1, v1, pt2, v2, αu, αm1, αm2)
+"""
+function overlap_indirect(gs::AbstractGlyphSpec, pt1, v1, pt2, v2, αu, αm1, αm2)
+    axis_intersect_within(gs, pt1, v1, pt2, v2, αm1, αm2) && return true
+    exit_of_first_is_in_second(gs, pt1, v1, pt2, v2, αm1, 0) && return true
+    exit_of_first_is_in_second(gs, pt2, v2, pt1, v1, αm2, 0) && return true
+    # At perp angles to pt1-pt2 anchor points
+    exit_of_first_is_in_second(gs, pt1, v1, pt2, v2, αu, π / 2) && return true
+    exit_of_first_is_in_second(gs, pt1, v1, pt2, v2, αu, -π / 2) && return true
+    exit_of_first_is_in_second(gs, pt2, v2, pt1, v1, αu, π  + π / 2) && return true
+    exit_of_first_is_in_second(gs, pt2, v2, pt1, v1, αu, π  - π / 2) && return true
     #
-    # The order of checks 2 to 7 is optimized for a certain collection of vector glyphs.
-    overlap3 = exit_of_first_is_in_second(gs, pt1, v1, pt2, v2, αu, π / 2)
-    overlap3 && return true
-    #
-    # Main axis of glyph 2. v2 is given in (x,y) frame
-    αm2 = atan(v2[2], v2[1])
-    overlap7 = exit_of_first_is_in_second(gs, pt2, v2, pt1, v1,  αm2, 0)
-    overlap7 && return true
-    #
-    overlap2 = exit_of_first_is_in_second(gs, pt1, v1, pt2, v2, αu, -π / 2)
-    overlap2 && return true
-    #
-    overlap5 = exit_of_first_is_in_second(gs, pt2, v2, pt1, v1,  αu, π / 2)
-    overlap5 && return true
-    #
-    # Main axis of glyph 1. v1 is given in (x,y) frame
-    αm1 = atan(v1[2], v1[1])
-    overlap6 = exit_of_first_is_in_second(gs, pt1, v1, pt2, v2, αm1, 0)
-    overlap6 && return true
-    #
-    overlap4 = exit_of_first_is_in_second(gs, pt2, v2, pt1, v1, αu, -π / 2)
-    overlap4 && return true
-    #
-    if length(gs.directions) == 1
-        overlap10 = axis_intersect_within(gs, pt1, v1, pt2, v2, αm1, αm2)
-        overlap10 && return true
-    else
-        overlap11 = dual_axes_intersect_within(gs, pt1, v1, pt2, v2, αm1, αm2)
-        overlap11 && return true
-    end
-    # Additional 'glancing' checks for bidirectional vectors
-    if U <: GSTensor
-        # Main axis + π
-        overlap8 = exit_of_first_is_in_second(gs, pt2, v2, pt1, v1,  αm2, π)
-        overlap8 && return true
-        overlap9 = exit_of_first_is_in_second(gs, pt1, v1, pt2, v2, αm1, π)
-        overlap9 && return true
-    end
+    overlap_indirect_additional_paths(gs::AbstractGlyphSpec, pt1, v1, pt2, v2, αm1, αm2) && return true
     false
 end
 
-function axis_intersect_within(gs, pt1, v1, pt2, v2, αm1, αm2)
-    # Angle (in x-y-up directions) of ray from pt1
-    α1 = αm1
-    α2 = αm2
+
+"""
+overlap_indirect_additional_paths(gs, pt1, v1, pt2, v2, αm1, αm2)
+overlap_indirect_additional_paths(gs::GSTensor{D1, 1}, pt1, v1, pt2, v2, αm1, αm2)
+overlap_indirect_additional_paths(gs::GSTensor{D12, 2}, pt1, v1, pt2, v2, αp1, αp2)
+"""
+overlap_indirect_additional_paths(gs, pt1, v1, pt2, v2, αm1, αm2) = false
+function overlap_indirect_additional_paths(gs::GSTensor{<:Any, 1}, pt1, v1, pt2, v2, αm1, αm2)
+    exit_of_first_is_in_second(gs, pt1, v1, pt2, v2, αm1, π) && return true
+    exit_of_first_is_in_second(gs, pt2, v2, pt1, v1, αm2, π) && return true
+    false
+end
+function overlap_indirect_additional_paths(gs::GSTensor{D12, 2}, pt1, K1, pt2, K2, αp1, αp2)
+    exit_of_first_is_in_second(gs, pt1, K1, pt2, K2, αp1, π) && return true
+    exit_of_first_is_in_second(gs, pt2, K2, pt1, K1, αp2, π) && return true
+    # Prepare for the other checks. `v` is 'primary' and `w` is secondary direction
+    w1 = K1[:, 2] # Glyph 1 in direction αs1
+    w2 = K2[:, 2] # Glyph 2 in direction αs2
+    # Secondary axes of glyphs. w is given in (x,y) frame
+    αs1 = atan(w1[2], w1[1])
+    αs2 = atan(w2[2], w2[1])
+    exit_of_first_is_in_second(gs, pt1, K1, pt2, K2, αs1, 0) && return true
+    exit_of_first_is_in_second(gs, pt2, K2, pt1, K1, αs2, 0) && return true
+    exit_of_first_is_in_second(gs, pt1, K1, pt2, K2, αs1, π) && return true
+    exit_of_first_is_in_second(gs, pt2, K2, pt1, K1, αs2, π) && return true
+    false
+end
+
+"""
+    axis_intersect_within(gs, pt1, v1, pt2, v2, αp1, αp2)
+"""
+function axis_intersect_within(gs, pt1, v1, pt2, v2, αp1, αp2)
+    if has_two_axes(gs)
+        return dual_axes_intersect_within(gs, pt1, v1, pt2, v2, αp1, αp2)
+    else
+        if !has_external_intersection_point(pt1, pt2, αp1, αp2)
+            return false
+        end
+        i3f, j3f = intersection_floating_point(pt1, pt2, αp1, αp2)
+        l1, r1, l2, r2 = tempus_fugit(gs, pt1, v1, pt2, v2, i3f, j3f)
+        # Criterion: The path pt1 -> pt2 -> pt3 (l1 + l2) stays within a glyph (r1 + r2) 
+        return l1 <= r1 && l2 <= r2
+    end
+end
+
+"""
+    tempus_fugit(gs, pt1, K1, pt2, K2, i3f, j3f)
+
+Length 1-3 
+Radial distance from 1 to exit of glyph 1 along 1-3
+Length 2-3 
+Radial distance from 2 to exit of glyph 2 along 2-3
+"""
+function tempus_fugit(gs, pt1, K1, pt2, K2, i3f, j3f)
+    i1, j1 = pt1.I
+    i2, j2 = pt2.I
+    # Distances from anchor points to intersection
+    l1 = hypot(j3f - j1, i3f - i1)
+    l2 = hypot(j3f - j2, i3f - i2)
+    # The intersection angle 3 may well be 180° to α
+    # Signed angles from anchor to intersection (x-y up) 
+    # Note we could perhaps find the angle to intersection without slow trigonometry.
+    α1s = atan(-(i3f - i1), j3f - j1)
+    α2s = atan(-(i3f - i2), j3f - j2)
+    # Distance from pt1's anchor point to exit (the intersection with pt1's glyph boundary)
+    r1 = radial_distance_glyph(gs, K1, α1s)
+    r2 = radial_distance_glyph(gs, K2, α2s)
+    return l1, r1, l2, r2
+end
+
+"""
+    has_two_axes(gs::AbstractGlyphSpec) = false
+    has_two_axes(gs::GSTensor{<:Any, 2}) = true
+"""
+has_two_axes(gs::AbstractGlyphSpec) = false
+has_two_axes(gs::GSTensor{D12, 2}) = true
+
+"""
+    has_external_intersection_point(pt1, pt2, α1, α2)
+"""
+function has_external_intersection_point(pt1, pt2, α1, α2)
     # Image coordinates
-    i1 = pt1.I[1]
-    j1 = pt1.I[2]
-    i2 = pt2.I[1]
-    j2 = pt2.I[2]
-    # We're not checking vertically aligned anchor points
-    j2 == j1 && return false 
-    # Parallell glyphs don't intersect
+    i1, j1 = pt1.I
+    i2, j2 = pt2.I
+    # Paralell glyphs don't intersect
     α1 ≈ α2 && return false
+    # This is an internal intersection
+    pt1 == pt2 && return false 
+    #
+    true
+end
+function intersection_floating_point(pt1, pt2, α1, α2)
+    # Image coordinates
+    i1, j1 = pt1.I
+    i2, j2 = pt2.I
     # The intersection (floating) point is at 3
     #=
     i3f = i1 - (j3f - j1) * tan(α1)
@@ -337,61 +381,68 @@ function axis_intersect_within(gs, pt1, v1, pt2, v2, αm1, αm2)
     =>
     j3f  =  (i1 - i2 + j1 * tan(α1) - j2 * tan(α2)) / (tan(α1) - tan(α2))
     =#
+    # Input was checked by `has_external_intersection_point`
     j3f  = (i1 - i2 + j1 * tan(α1) - j2 * tan(α2)) / (tan(α1) - tan(α2))
     i3f = i1 - (j3f - j1) * tan(α1)
-    # Distances from anchor points to intersection
-    l1 = hypot(j3f - j1, i3f - i1)
-    l2 = hypot(j3f - j2, i3f - i2)
-    # The intersection angle 3 may well be 180° to α
-    # Signed angles from anchor to intersection (x-y up) 
-    # Note we could probably find the angle to intersection without trigonometry.
-    α1s = atan(-(i3f - i1), j3f - j1)
-    α2s = atan(-(i3f - i2), j3f - j2)
-    # Distance from pt1's anchor point to exit (the intersection with pt1's glyph boundary)
-    r1 = radial_distance_glyph(gs, v1, α1s)
-    r2 = radial_distance_glyph(gs, v2, α2s)
-    # @show l1 l2 rad2deg(α1) rad2deg(α1s) rad2deg(α2) rad2deg(α2s) r1 r2 
-    # Criterion
-    # @show  (l1 <= r1 && l2 <= r2)
-    l1 <= r1 && l2 <= r2
-end
-
-function dual_axes_intersect_within(gs, pt1, K1::TENSORMAP, pt2, K2::TENSORMAP, αp1, αp2)
-    @assert length(gs.directions) == 2
-    @assert gs.directions[1] == 1
-    # Primary - primary. Both are bidirectional 2d vectors.
-    axis_intersect_within(gs, pt1, K1, pt2, K2, αp1, αp2) && return true
+    i3f, j3f
+end 
+function dual_axes_intersect_within(gs::GSTensor{D12, 2}, pt1, K1::TENSORMAP, pt2, K2::TENSORMAP, αp1, αp2)
+    # Primary - primary
+    if has_external_intersection_point(pt1, pt2, αp1, αp2)
+        i3f, j3f = intersection_floating_point(pt1, pt2, αp1, αp2)
+        l1, r1, l2, r2 = tempus_fugit(gs, pt1, K1, pt2, K2, i3f, j3f)
+        # Criterion: The path pt1 -> pt2 -> pt3 (l1 + l2) stays within a glyph (r1 + r2) 
+        if l1 <= r1 && l2 <= r2
+            return true
+        end
+    end
     # Prepare for the other checks. `v` is 'primary' and `w` is secondary direction
-    v1 = K1[:, 1] # Direction αp1
-    v2 = K2[:, 1] # Direction αp2
-    w1 = K1[:, 2] # Direction αs1
-    w2 = K2[:, 2] # Direction αs2
+    w1 = K1[:, 2] # Glyph 1 in direction αs1
+    w2 = K2[:, 2] # Glyph 2 in direction αs2
     # Secondary axes of glyphs. w is given in (x,y) frame
     αs1 = atan(w1[2], w1[1])
-    αs2 = atan(w1[2], w1[1])
-    # 
-    # Secondary - secondary.
-    axis_intersect_within(gs, pt1, K1, pt2, K2, αs1, αs2) && return true
-    # Primary - secondary. 
-    #@show K1 v1 w1
-    #@show K1[2] v1[2] w1[2]
-    axis_intersect_within(gs, pt1, K1, pt2, K2, αp1, αs2) && return true
-    #
+    αs2 = atan(w2[2], w2[1])
+    # Primary of 1 - secondary of 2
+    if has_external_intersection_point(pt1, pt2, αp1, αs2)
+        i3f, j3f = intersection_floating_point(pt1, pt2, αp1, αs2)
+        l1, r1, l2, r2 = tempus_fugit(gs, pt1, K1, pt2, K2, i3f, j3f)
+        # Criterion: The path pt1 -> pt2 -> pt3 (l1 + l2) stays within a glyph (r1 + r2) 
+        if l1 <= r1 && l2 <= r2
+            return true
+        end
+    end
+    # Secondary of 1 - primary of 2
+    if has_external_intersection_point(pt1, pt2, αs1, αp2)
+        i3f, j3f = intersection_floating_point(pt1, pt2, αs1, αp2)
+        l1, r1, l2, r2 = tempus_fugit(gs, pt1, K1, pt2, K2, i3f, j3f)
+        # Criterion: The path pt1 -> pt2 -> pt3 (l1 + l2) stays within a glyph (r1 + r2) 
+        if l1 <= r1 && l2 <= r2
+            return true
+        end
+    end
+    # Secondary of 1 - secondary of 2
+    if has_external_intersection_point(pt1, pt2, αs1, αs2)
+        i3f, j3f = intersection_floating_point(pt1, pt2, αs1, αs2)
+        l1, r1, l2, r2 = tempus_fugit(gs, pt1, K1, pt2, K2, i3f, j3f)
+        # Criterion: The path pt1 -> pt2 -> pt3 (l1 + l2) stays within a glyph (r1 + r2) 
+        if l1 <= r1 && l2 <= r2
+            return true
+        end
+    end
     false
 end
 
 
 
-
 """
-     exit_of_first_is_in_second(gs::U, pt1, v1, pt2, v2, αu, Δαu) where U<:GlyphSpec
+     exit_of_first_is_in_second(gs::AbstractGlyphSpec, pt1, v1, pt2, v2, αu, Δαu)
 
 Less simple overlap calculation detection.
 Checks if a path from `pt1` to `pt2` is within glyphs 1 or 2.
 The path starts a straight line from `pt1` to `exit 1` along direction `αu + Δαu`.
 It ends with a straight section from exit to `pt2`.
 """
-function exit_of_first_is_in_second(gs::U, pt1, v1, pt2, v2, αu, Δαu) where U<:GlyphSpec
+function exit_of_first_is_in_second(gs::AbstractGlyphSpec, pt1, v1, pt2, v2, αu, Δαu)
     #
     # Angle (in x-y-up directions) of ray from pt1
     α = αu + Δαu
@@ -413,25 +464,19 @@ function exit_of_first_is_in_second(gs::U, pt1, v1, pt2, v2, αu, Δαu) where U
     # which is inside of glyph 2.
     r2 = radial_distance_glyph(gs, v2, β + π)
     # Criterion for overlap 
-    #@show pt1 rad2deg(α) qj qi rad2deg(β) lq r2 r1  (r2 > lq)
-    #println()
     r2 >  lq
 end
 
-"""
-    placements_and_values(b, gs, ppts)
 
-Given a functor b and a glyph spec gs, 
-select a subset of ppts. These are 
+
+"""
+    placements_and_values(b::AbstractIJFunctor, gs::AbstractGlyphSpec, ppts)
+    --> (Vector{CartesianIndex{2}}, Vector{typeof(b(first(ppts).I...)))}
+
+Given a functor `b` and a glyph spec `gs`, select a subset of `ppts`. These are 
 placements for non-overlapping glyphs.
-
-Also returns 
-
-```
-passed_values == b.(passed_placements)
-```
 """
-function placements_and_values(b::T, gs::U, ppts)  where {T<: Union{BidirectionOnGrid, DirectionOnGrid}, U<:GlyphSpec}
+function placements_and_values(b::AbstractIJFunctor, gs::AbstractGlyphSpec, ppts)
     passed_placements = CartesianIndex{2}[]
     valtyp = typeof(b(first(ppts).I...))
     # Could be a vector of vectors, or a vector of TENSORMAP
@@ -462,30 +507,55 @@ function placements_and_values(b::T, gs::U, ppts)  where {T<: Union{BidirectionO
             end
         end
     end
-    # @show length(passed_placements)
     passed_placements, passed_values
 end
 
 
-"""
-pack_glyphs!(img, z::Matrix{<:AbstractFloat}, gs::GSTensor; scatterdist = gs.dashsize, seed = MersenneTwister(123))
-pack_glyphs!(img, z::Matrix{<:AbstractFloat}, gs::GSVector; scatterdist = gs.dashsize, seed = MersenneTwister(123))
-pack_glyphs!(img, b::T, gs::U; scatterdist = gs.dashsize, seed = MersenneTwister(123))  where
-    {T<: Union{BidirectionOnGrid, DirectionOnGrid}, U<:GlyphSpec}
-    
-"""
-function pack_glyphs!(img, z::Matrix{<:AbstractFloat}, gs::GSTensor; scatterdist = gs.dashsize, seed = MersenneTwister(123))
-    pack_glyphs!(img, BidirectionOnGrid(𝐊!, z), gs; scatterdist, seed)
-end
-function pack_glyphs!(img, z::Matrix{<:AbstractFloat}, gs::GSVector; scatterdist = gs.dashsize, seed = MersenneTwister(123))
-    pack_glyphs!(img, DirectionOnGrid(𝐧ₚ!, z), gs; scatterdist, seed)
+function placements_only(gs::GSTangentBasis, ppts)
+    passed_placements = CartesianIndex{2}[]
+    # Could be a vector of vectors, or a vector of TENSORMAP
+    se = Set(ppts)
+    while !isempty(se)
+        # Set current point, drop it from the set.
+        pt = pop!(se)
+        if isempty(passed_placements)
+            # Only this point to consider: There must be room.
+            push!(passed_placements, pt)
+        else
+            any_too_close = any(passed_placements) do ppt
+                too_close(gs, pt, ppt)
+            end
+            # None too close => add this glyph as passed
+            if ! any_too_close
+                push!(passed_placements, pt)
+            end
+        end
+    end
+    passed_placements
 end
 
-function pack_glyphs!(img, b::T, gs::U; scatterdist = gs.dashsize, seed = MersenneTwister(123))  where
-    {T<: Union{BidirectionOnGrid, DirectionOnGrid}, U<:GlyphSpec}
-    ppts = potential_scattered_placements(b, gs; scatterdist, seed)
+
+
+
+"""
+    pack_glyphs!(img, b::AbstractIJFunctor, gs::AbstractGlyphSpec; scatterdist = 3.0, seed = MersenneTwister(123))
+    pack_glyphs!(img, z::Matrix{<:AbstractFloat}, gs::GSTangentBasis; scatterdist = 3.0, seed = MersenneTwister(123))
+    pack_glyphs!(img, z::Matrix{<:AbstractFloat}, gs::AbstractGlyphSpec; scatterdist = 3.0, seed = MersenneTwister(123))
+"""
+function pack_glyphs!(img, b::AbstractIJFunctor, gs::AbstractGlyphSpec; scatterdist = 3.0, seed = MersenneTwister(123))
+    ppts = indices_scattered(b; scatterdist, seed)
     filtered_placements, filtered_values = placements_and_values(b, gs, ppts)
     plot_glyphs_given_values!(img, filtered_placements, filtered_values, gs)
     img
 end
+function pack_glyphs!(img, z::Matrix{<:AbstractFloat}, gs::GSTangentBasis; scatterdist = 3.0, seed = MersenneTwister(123))
+    ppts = indices_scattered(z, gs; scatterdist, seed)
+    filtered_placements = placements_only(gs, ppts)
+    plot_glyphs!(img, z, filtered_placements, gs)
+    img
+end
+function pack_glyphs!(img, z::Matrix{<:AbstractFloat}, gs::AbstractGlyphSpec; scatterdist = 3.0, seed = MersenneTwister(123))
+    pack_glyphs!(img, default_ij_functor(z, gs), gs; scatterdist, seed)
+end
+
 

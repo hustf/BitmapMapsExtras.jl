@@ -212,22 +212,45 @@ function angle_tangent_to_xy(a, d, e, g, h, i, ϕ)
     α = atan(y, x)
 end
 
+"""
+    𝐧ₚ(M)
+
+Projection of `𝐧` into the xy-plane (y is up, which is a compromise convention here).
+Input is a 5x5 matrix of numbers representing elevation. 
+Calling `𝐧ₚ!` is preferrable for speed.
+"""
+function 𝐧ₚ(M)
+    v = Array{Float64, 1}(undef, 2)
+    𝐧ₚ!(v, M)
+end
+
+
 
 """
     𝐧ₚ!(v, M)
 
-v is mutated: 
+Also see `𝐧ₚᵤ!`.
+
+Projection of `𝐧` into the xy-plane (y is up). `𝐧` is the unit normal vector to the centre of elevation surface `z`.
+
+`M` is a 5x5 view of the elevation surface `z`. This function estimates at `M[3, 3]`.
+
+`v` is mutated to the output.
 
     v[1]: x ("j")-component (columns) of 𝐧ₚ,
     v[2]: y ("-i")-component of (rows) of 𝐧ₚ 
 
-Projection of 𝐧, the unit normal vector to the elevation surface z
-into the xy-plane (y is up).
-
-M is a 5x5 view of the elevation surface z.
-
 Refers global const KERN1´  and KERN2´.
 KERN2´ values ensure that 'y is up'.
+
+# Example
+
+```
+julia> 𝐧ₚ!([0.0, 0.0], [2i for i = 1:5, j = 1:5])
+2-element Vector{Float64}:
+ -8.068210179770734e-17
+  0.894427906538234
+```
 """
 function 𝐧ₚ!(v, M)
     dz_x = dz_over_dx(M)
@@ -241,18 +264,27 @@ end
 """
     𝐧ₚᵤ!(v, M)
 
-v is mutated: 
+Also see `𝐧ₚ!`.
+
+Normalized projection of 𝐧 into the xy-plane (y is up). `𝐧` is the normal vector to the elevation surface `z`.
+
+`M` is a 5x5 view of the elevation surface `z`. This function estimates at `M[3, 3]`.
+
+`v` is mutated to the output.
 
     v[1]: x ("j")-component (columns) of 𝐧ₚᵤ,
     v[2]: y ("-i")-component of (rows) of 𝐧ₚᵤ 
 
-Normalized projection of 𝐧, the normal vector to the elevation surface z
-into the xy-plane (y is up).
+Refers global const KERN1´  and KERN2´. KERN2´ values ensure that 'y is up'.
 
-M is a 5x5 view of the elevation surface z.
+# Example
 
-Refers global const KERN1´  and KERN2´.
-KERN2´ values ensure that 'y is up'.
+```
+julia> 𝐧ₚᵤ!([0.0, 0.0], [2i for i = 1:5, j = 1:5])
+2-element Vector{Float64}:
+ -9.020525992975423e-17
+  1.0
+```
 """
 function 𝐧ₚᵤ!(v, M)
     dz_x = dz_over_dx(M)

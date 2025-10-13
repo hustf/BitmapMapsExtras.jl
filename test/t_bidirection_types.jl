@@ -2,23 +2,23 @@ using Test
 using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
 using BitmapMapsExtras: BidirectionOnGrid, BidirectionInDomain, BidirectionAtXY, Domain
-using BitmapMapsExtras: DirectionFunctor, UnidirectionAtXY
-using BitmapMapsExtras: direction_at_xy!, direction_on_grid!, direction_in_domain!
-using BitmapMapsExtras: 𝐊!, MVector, MMatrix, GrayA, norm, reset!
+using BitmapMapsExtras: AbstractXYFunctor, UnidirectionAtXY
+using BitmapMapsExtras: 𝐊!, norm, reset!
 
 !@isdefined(hashstr) && include("common.jl")
-radius = TestMatrices.r
+
 #################
 # Low-level tests
 #################
 
 @testset "Constant curvature" begin
+    radius = TestMatrices.r
     z = z_cylinder(0.0)[300:500, 100:300];
     @testset "BidirectionOnGrid" begin
         bog = BidirectionOnGrid(𝐊!, z)
-        pt = CartesianIndex(100,100)
-        @test isapprox(bog((pt)), [0 0; 0   -1/radius],  atol = 2e-4)
-        @inferred bog(pt)
+        pt = (100, 100)
+        @test isapprox(bog(pt...), [0 0; 0   -1/radius],  atol = 2e-4)
+        @inferred bog(pt...)
     end
     @testset "BidirectionInDomain" begin 
         bid = BidirectionInDomain(𝐊!, z)
@@ -55,7 +55,7 @@ end
     # Smoothly varying curvature, largest at centre lines
     z = z_paraboloid()
     uxy = UnidirectionAtXY(𝐊!, z, true, false) 
-    @test uxy isa DirectionFunctor
+    @test uxy isa AbstractXYFunctor
     @test uxy(3.0, 3.0) ≈ [0.0003794227888056931, 0.0008893924914691132]
     vu = [norm(uxy(100.0, y)[:, 1]) for y in 50:0.2:53]
     @test sort(vu) == vu
@@ -79,30 +79,3 @@ end
     reset!(uxy)
     @test ! uxy.flip[]
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# 1.690 μs (28 allocations: 1.84 KiB)
-#@btime baxy(892.0, 960.0)
-
-
-# A good part is in principal_curvature_and_direction. 
-# Optimization postponed.
-#@profview begin 
-#      for y = 1.0:0.5:100
-#          baxy(100.0, y)
-#      end
-#end

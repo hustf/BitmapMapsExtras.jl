@@ -2,7 +2,8 @@
 # Additional to `BitmapMaps.jl/mark_utils.jl`.
 #
 # Contains 
-# `draw_vector!` 
+# `draw_vector!`
+# `draw_bidirectional_vector!`
 # `draw_points!` 
 # `spray!`
 # `LogMapper`
@@ -93,6 +94,49 @@ function draw_vector!(cov::Matrix{Float32}, A::CartesianIndex{2}, Δi::Int, Δj:
     end
     cov
 end
+
+"""
+    draw_bidirectional_vector!(cov, p, v::AbstractVector, strength::Float32)
+
+Opposing vectors. Outwards pointing means positive, inwards pointing means negative,
+as is customary for e.g. tensile / compressive force.
+
+- `v`[1:2] specifies both direction and sign and is given in an x-y up coordinate system. 
+
+`v` points in direction `θ` from x around z in an right-handed coordinate system. Then:
+
+    θ ∈ [0, π>:  Positive sign.   
+    θ ∈ [π, 2π>: Negative sign.   
+"""
+function draw_bidirectional_vector!(cov, p, v::AbstractVector, strength::Float32)
+    Δj = Int(round(v[1]))
+    Δi = Int(round(v[2]))
+    if is_bidirec_vect_positive(v)
+        # First or second quadrant. Positive.
+        draw_vector!(cov, p, -Δi, Δj, strength)
+        draw_vector!(cov, p, Δi, -Δj, strength)
+    else
+        # Third or fourth quadrant. Negative.
+        draw_vector!(cov, p + CartesianIndex(-Δi, Δj), Δi, -Δj, strength)
+        draw_vector!(cov, p + CartesianIndex(Δi, -Δj), -Δi, Δj, strength)
+    end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 """
@@ -202,14 +246,68 @@ LogMapper() = LogMapper(N0f8(1/log1p(10)), 0N0f8)
 
 
 """
-    apply_color_by_coverage!(img, cov::Matrix{Float32}, rgb::RGB)
+    apply_color_by_coverage!(img, cov::Matrix{Float32}, color::RGB{N0f8})
+
+Apply 'cov' on top of 'img' in `color`.
+
+`img` is an RGB or RGBA image on which we apply a one-color overlay.
+`cov` represents the coverage at each pixel, think of each element value as the 
+     number of times a spray brush passes over this pixel. Also see `spray!`
+
+The overlay is a temporary RGBA image where RGB is set by `color`. 
+The overlay's opaqueness (the 'A' channel) is 0 where coverage is 0, 
+meaning that 'img' is unchanged by the overlay. 
+
+Where the coverage value is 10 or above, `img` is completely covered by the overlay:
+
+| Coverage | Overlay opaqueness |
+|----------|---------------|
+| 0.0      | 0.0           |
+| 0.5      | 0.168627      |
+| 1.0      | 0.286275      |
+| 1.5      | 0.380392      |
+| 2.0      | 0.454902      |
+| 2.5      | 0.521569      |
+| 3.0      | 0.576471      |
+| 3.5      | 0.623529      |
+| 4.0      | 0.670588      |
+| 4.5      | 0.709804      |
+| 5.0      | 0.745098      |
+| 5.5      | 0.776471      |
+| 6.0      | 0.807843      |
+| 6.5      | 0.839216      |
+| 7.0      | 0.862745      |
+| 7.5      | 0.890196      |
+| 8.0      | 0.913725      |
+| 8.5      | 0.937255      |
+| 9.0      | 0.956863      |
+| 9.5      | 0.976471      |
+| 10.0     | 0.996078      |
+ 
 """
-function apply_color_by_coverage!(img, cov::Matrix{Float32}, rgb::RGB)
-    # Nonlinear 'coverage' {Float32} to alpha {N0f8}. Default values for now.
+function apply_color_by_coverage!(img, cov::Matrix{Float32}, color::RGB{N0f8})
     mapper = LogMapper()
-    f = x -> RGBA{N0f8}(rgb.r, rgb.g, rgb.b, mapper(x))
+    f = x -> RGBA{N0f8}(color.r, color.g, color.b, mapper(x))
     # Composite over img
     img .= blend.(img, f.(cov))
 end
 
+"""
+    apply_color_by_any_coverage!(img, cov::Matrix{Float32}, color::RGB{N0f8})
 
+See `apply_color_by_coverage!`, but here, coverage is on-off.
+
+
+| Coverage | Overlay opaqueness |
+|----------|---------------|
+| 0.0      | 0.0           |
+| 0.01     | 1.0           |
+| 123.45   | 1.0           |
+
+"""
+function apply_color_by_any_coverage!(img, cov::Matrix{Float32}, color::RGB{N0f8})
+    mapper = x -> x > 0 ? 1 : 0
+    f = x -> RGBA{N0f8}(color.r, color.g, color.b, mapper(x))
+    # Composite over img
+    img .= blend.(img, f.(cov))
+end

@@ -149,11 +149,11 @@ function rhs!(du, u, uxy::UnidirectionAtXY, t)
 end
 # Exit criterion 
 function signed_distance_within_domain(u, t, integrator::ODEIntegrator)
-    @assert integrator.p isa DirectionFunctor
+    @assert integrator.p isa AbstractXYFunctor
     signed_distance_within_domain(integrator.p, u[1], u[2])
 end
 signed_distance_within_domain(uxy::UnidirectionAtXY, x, y) =  signed_distance_within_domain(uxy.baxy.d, x, y)
-signed_distance_within_domain(fxy::DirectionFunctor, x, y) =  signed_distance_within_domain(fxy.d, x, y)
+signed_distance_within_domain(fxy::AbstractXYFunctor, x, y) =  signed_distance_within_domain(fxy.d, x, y)
 
 # Exit criterion. The hard coded criterion here is not
 # intended for fine tuning. Instead, set a threshold 
@@ -294,7 +294,7 @@ function get_streamlines_points(f, z, pts, sol_density;
     map(sol -> extract_discrete_points_on_streamline(sol, negy, sol_density), sols)
 end
 
-function get_streamlines_xy(fxy::T, pts; odekws...) where T<:DirectionFunctor
+function get_streamlines_xy(fxy::T, pts; odekws...) where T<:AbstractXYFunctor
     @assert eltype(pts) <: CartesianIndex{2}
     # Start coordinates in (x, y)
     vu0 = vu0_from_pts(fxy, pts)
@@ -308,7 +308,7 @@ end
     vu0_from_pts(uxy::UnidirectionAtXY, pts)
     ---> 
 """
-vu0_from_pts(fxy::T, pts) where T<:DirectionFunctor = vu0_from_pts(fxy.negy, pts)
+vu0_from_pts(fxy::T, pts) where T<:AbstractXYFunctor = vu0_from_pts(fxy.negy, pts)
 vu0_from_pts(uxy::UnidirectionAtXY, pts) = vu0_from_pts(uxy.baxy.negy, pts)
 function vu0_from_pts(negy::NegateY, pts)
     @assert eltype(pts) <: CartesianIndex{2}
@@ -319,7 +319,7 @@ end
 
 
 
-function get_solution_xy(fxy::T, vu0; odekws...) where T<:DirectionFunctor
+function get_solution_xy(fxy::T, vu0; odekws...) where T<:AbstractXYFunctor
     # We need to define a stopping point. 
     # Take it from keywords if supplied. 
     tspan = make_tspan(;odekws...)
@@ -366,7 +366,7 @@ end
 add_discrete_callbacks!(vdcb, fxy) = vdcb 
 
 function get_solution_xy(daxy, vu0; odekws...)
-    throw("now dead")
+    throw("not dead anyway, checking, WIP")
     # We need to define a stopping point. 
     # Take it from keywords if supplied. 
     tspan = (0.0, get(odekws, :tstop, 1000))
@@ -395,7 +395,7 @@ function get_solution_xy(daxy, vu0; odekws...)
     # Unfortunately, daxy may change during solution of one.
     # Stil, we don't define as if the state of daxy is part of the initial condition.
 
-    # TODO
+    # TODO WIP
     if isempty(remaining_kws)
         map(vu0) do u0
             println("\n u0 = $u0:")

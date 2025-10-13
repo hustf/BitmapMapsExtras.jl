@@ -11,37 +11,38 @@ using BitmapMapsExtras: COLOR_CURVGLYPH, apply_color_by_coverage!
 ####################
 # Non-linear mapping
 ####################
-vlin = 0f0:0.5f0:10f0
-# Float32 to Float32
-mapper = LogMapper(1f0/log1p(10f0), 0f0)
-mat = hcat(vlin, mapper.(vlin))
-@test mat ≈ Float32[
-    0.0  0.0
-    0.5  0.169092
-    1.0  0.289065
-    1.5  0.382123
-    2.0  0.458157
-    2.5  0.522443
-    3.0  0.57813
-    3.5  0.627249
-    4.0  0.671188
-    4.5  0.710935
-    5.0  0.747222
-    5.5  0.780602
-    6.0  0.811508
-    6.5  0.84028
-    7.0  0.867194
-    7.5  0.892477
-    8.0  0.916314
-    8.5  0.938862
-    9.0  0.960253
-    9.5  0.9806
-    10.0  1.0
-    ]
-# Float32 to N0f8 (mantissa 256)
-mapper = LogMapper()
-@test mapper.(vlin) == N0f8[0.0N0f8, 0.169N0f8, 0.286N0f8, 0.38N0f8, 0.455N0f8, 0.522N0f8, 0.576N0f8, 0.624N0f8, 0.671N0f8, 0.71N0f8, 0.745N0f8, 0.776N0f8, 0.808N0f8, 0.839N0f8, 0.863N0f8, 0.89N0f8, 0.914N0f8, 0.937N0f8, 0.957N0f8, 0.976N0f8, 0.996N0f8]
-
+@testset "Non-linear mapping" begin
+    vlin = 0f0:0.5f0:10f0
+    # Float32 to Float32
+    mapper = LogMapper(1f0/log1p(10f0), 0f0)
+    mat = hcat(vlin, mapper.(vlin))
+    @test mat ≈ Float32[
+        0.0  0.0
+        0.5  0.169092
+        1.0  0.289065
+        1.5  0.382123
+        2.0  0.458157
+        2.5  0.522443
+        3.0  0.57813
+        3.5  0.627249
+        4.0  0.671188
+        4.5  0.710935
+        5.0  0.747222
+        5.5  0.780602
+        6.0  0.811508
+        6.5  0.84028
+        7.0  0.867194
+        7.5  0.892477
+        8.0  0.916314
+        8.5  0.938862
+        9.0  0.960253
+        9.5  0.9806
+        10.0  1.0
+        ]
+    # Float32 to N0f8 (mantissa 256)
+    mapper = LogMapper()
+    @test mapper.(vlin) == N0f8[0.0N0f8, 0.169N0f8, 0.286N0f8, 0.38N0f8, 0.455N0f8, 0.522N0f8, 0.576N0f8, 0.624N0f8, 0.671N0f8, 0.71N0f8, 0.745N0f8, 0.776N0f8, 0.808N0f8, 0.839N0f8, 0.863N0f8, 0.89N0f8, 0.914N0f8, 0.937N0f8, 0.957N0f8, 0.976N0f8, 0.996N0f8]
+end
 ##############
 # Spray kernel
 ##############
@@ -91,7 +92,7 @@ end
 ############
 # Cone lines
 ############
-begin
+@testset "Cone lines and optional transpacency layer" begin
     img = zeros(RGBA{N0f8}, 62, 160);
     img .= RGBA{N0f8}(1, 0.494, 0.43, 1);
     cov = zeros(Float32, size(img)...);
@@ -102,10 +103,14 @@ begin
             rr -= Δr
         end
     end
-    apply_color_by_coverage!(img, cov, RGBA{N0f8}(1,1,1,1))
+    apply_color_by_coverage!(img, cov, RGB{N0f8}(1,1,1))
+    @test hashstr(img) == "9a5de89cc254cbe0e59e4080f6915bd790b29200"
+    #
+    img = zeros(RGB{N0f8}, 62, 160);
+    img .= RGB{N0f8}(0, 0, 0);
+    # COLOR_CURVGLYPH isa RGB{N0f8}
+    apply_color_by_coverage!(img, cov, COLOR_CURVGLYPH)
+    @test img isa Matrix{<:RGB}
+    @test hashstr(img) == "4fdebbde7a4cd0cfa71af8bd1add54ebc474aa91"
 end
-@test hashstr(img) == "9a5de89cc254cbe0e59e4080f6915bd790b29200"
-img .= RGBA{N0f8}(0, 0, 0, 1);
-apply_color_by_coverage!(img, cov, COLOR_CURVGLYPH)
-@test hashstr(img) == "69c1a404a2d175159f53a58fd0970c4659f4bb23"
 

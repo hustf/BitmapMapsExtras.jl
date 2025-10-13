@@ -2,62 +2,75 @@
  # specifying glyph properties.
  # NOT currently implemented 
 
-abstract type GlyphSpec end 
+abstract type AbstractGlyphSpec end 
 
-#=
-Maybe make direction into this:
-julia> struct O1{D1, D2}
-       x
-       end
-
-julia> O1{Val{true}, Val{false}}(2)
-O1{Val{true}, Val{false}}(2)
-=#
-
-struct GSTensor <: GlyphSpec
+struct GSTensor{D, N} <: AbstractGlyphSpec
     multip::Float64
     ming::Float64
     maxg::Float64
     dashsize::Float32
     strength::Float32 # Graphical spray strength
-    color1::RGB{N0f8}
-    color2::RGB{N0f8}
-    directions::UnitRange{Int64}
+    colors::NTuple{N, RGB{N0f8}}
+    function GSTensor{D,N}(multip, ming, maxg, dashsize, strength, colors) where {D,N}
+        @assert D == D1 || D == D2 || D == D12
+        @assert N == ((D == D12) ? 2 : 1)
+        new{D,N}(multip, ming, maxg, dashsize, strength, colors)
+    end
 end
-function GSTensor(;multip = 50, ming = -50, maxg = 50,
-    dashsize = Float32(maxg / 10), strength = 0.8f0, color1 = PALETTE_GRGB[3],
-    color2 = PALETTE_GRGB[4], directions = 1:2)
-    rd = to_range(directions)
-    @assert first(rd) ∈ [1, 2] && last(rd) ∈ [1, 2] "Directions can be 1 or 2, not: $rd"
-    #
-    GSTensor(float(multip), float(ming), float(maxg), Float32(dashsize), Float32(strength),
-        color1, color2, rd)
+# Constructor
+function GSTensor(; multip = 50, ming = -50, maxg = 50,
+                  dashsize = 5.0f0, strength = 0.8f0,
+                  colors = (PALETTE_GRGB[3], PALETTE_GRGB[4]),
+                  direction = 1:2)
+    D, colrs = _dirs_and_colors(direction, colors...)
+    N = length(colrs)  # 1 or 2
+    GSTensor{D,N}(float(multip), float(ming), float(maxg),
+                  Float32(dashsize), Float32(strength), colrs)
 end
-to_range(x::Int64) = x:x
-to_range(x::UnitRange{Int64}) = x 
-@define_show_with_fieldnames GSTensor
-function is_in_limits(gs::GSTensor, K::TENSORMAP)
-    if 1 ∈ gs.directions && 2 ∈ gs.directions
-        # Checks a glyph for max and min principal directions. 
-        K1 = @view K[:, 1]
-        K2 = @view K[:, 2]
-        limit1 = is_bidirec_vect_positive(K1) ? gs.maxg : abs(gs.ming)
-        limit2 = is_bidirec_vect_positive(K2) ? gs.maxg : abs(gs.ming)
-        norm(K1) * gs.multip ≤ limit1 || return false
-        norm(K2) * gs.multip ≤ limit2 || return false
-        return true
-    elseif 2 ∈ gs.directions || 1 ∈ gs.directions
-        # Checks a glyph for one principal direction. 
-        v = view(K, :, first(gs.directions))
-        limit = is_bidirec_vect_positive(v) ? gs.maxg : abs(gs.ming)
-        return norm(v) * gs.multip ≤ limit
+_dirs_and_colors(d::Int, c1, c2) = d == 1 ? (D1,  (c1,)) :
+                                   d == 2 ? (D2,  (c2,)) :
+                                            error("direction must be 1, 2, or 1:2")
+function _dirs_and_colors(rd::UnitRange{Int}, c1, c2)
+    f, l = first(rd), last(rd)
+    if     f == 1 && l == 1
+        return (D1,  (c1,))
+    elseif f == 2 && l == 2
+        return (D2,  (c2,))
+    elseif f == 1 && l == 2
+        return (D12, (c1, c2))
     else
-        throw(ErrorException("Bad: $(gs.directions)"))
+        error("direction must be 1, 2, or 1:2 (got $rd)")
     end
 end
 
 
-struct GSVector <: GlyphSpec
+@define_show_with_fieldnames GSTensor
+function is_in_limits(gs::GSTensor{D12, 2}, K::TENSORMAP)
+    K1 = @view K[:, 1]
+    K2 = @view K[:, 2]
+    limit1 = is_bidirec_vect_positive(K1) ? gs.maxg : abs(gs.ming)
+    limit2 = is_bidirec_vect_positive(K2) ? gs.maxg : abs(gs.ming)
+    norm(K1) * gs.multip ≤ limit1 || return false
+    norm(K2) * gs.multip ≤ limit2 || return false
+    return true
+end
+function is_in_limits(gs::GSTensor{D1, 1}, K::TENSORMAP)
+    K1 = @view K[:, 1]
+    limit1 = is_bidirec_vect_positive(K1) ? gs.maxg : abs(gs.ming)
+    norm(K1) * gs.multip ≤ limit1 || return false
+    return true
+end
+function is_in_limits(gs::GSTensor{D2, 1}, K::TENSORMAP)
+    K2 = @view K[:, 2]
+    limit2 = is_bidirec_vect_positive(K2) ? gs.maxg : abs(gs.ming)
+    norm(K2) * gs.multip ≤ limit2 || return false
+    return true
+end
+
+
+
+
+struct GSVector <: AbstractGlyphSpec
     multip::Float64
     ming::Float64
     maxg::Float64
@@ -66,7 +79,7 @@ struct GSVector <: GlyphSpec
     color::RGB{N0f8}
 end
 function GSVector(; multip = 50, ming = 0.01, maxg = 50,
-    dashsize = Float32(maxg / 50), strength = 0.7f0, color = COLOR_CURVGLYPH)
+    dashsize = 5.0f0, strength = 0.7f0, color = COLOR_CURVGLYPH)
     #
     GSVector(float(multip), float(ming), float(maxg), Float32(dashsize), Float32(strength), color)
 end
@@ -74,8 +87,9 @@ end
 is_in_limits(gs::GSVector, v) = gs.ming ≤ gs.multip * norm(v) ≤ gs.maxg
 
 
-struct GSTangentBasis <: GlyphSpec
+struct GSTangentBasis <: AbstractGlyphSpec
     halfsize::Int64
+    colors::NTuple{3, RGB{N0f8}}
 end
-GSTangentBasis(;halfsize = 30) = GSTangentBasis(halfsize)
+GSTangentBasis(;halfsize = 30, colors = PALETTE_RGB) = GSTangentBasis(halfsize, colors)
 @define_show_with_fieldnames GSTangentBasis

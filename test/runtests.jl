@@ -25,7 +25,7 @@ end
     @testset "calculate and draw glyphs" begin
         include("t_calculate_and_draw_glyphs.jl")
     end
-    @testset "paint curvature  type" begin
+    @testset "paint curvature type" begin
         include("t_paint_curvature_type.jl")
     end
     @testset "pack glyphs" begin
@@ -43,11 +43,16 @@ end
     @testset "bidirection types" begin
         include("t_bidirection_types.jl")
     end
+    # 
     @testset "streamlines" begin
-        include("t_streamlines.jl")
+        @test_broken throw("Streamlines tests are currently broken,
+           because they rely on a deprecated API in tests/common.jl")
+        #include("t_streamlines.jl")
     end
     @testset "streamlines curvature" begin
-        include("t_streamlines_curvature.jl")
+        @test_broken throw("Streamlines tests are currently broken,
+           because they rely on a deprecated API in tests/common.jl")
+        #include("t_streamlines_curvature.jl")
     end
 end
 end

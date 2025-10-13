@@ -31,7 +31,7 @@ using OrdinaryDiffEqCore: ODEIntegrator
 import SciMLBase
 using SciMLBase: ReturnCode.Success, ReturnCode.Terminated, ReturnCode.DtLessThanMin
 #
-export tangent_basis # Add more at some later time, or use new public thing.
+export tangent_basis # TODO Add more at some later time, or use new public thing.
 
 """
 Kernel for first derivative.
@@ -47,38 +47,27 @@ flipping the y-axis direction: y is screeen-up, x is to right.
 const KERN1´ = -Kernel.ando5()[1]
 const KERN2´ = Kernel.ando5()[2]
 
-"""
-Kernel for second derivative. Applies to a vector with values interpolated from a matrix and a direction.
-"""
+"Kernel for second derivative. Applies to a vector with values interpolated from a matrix and a direction."
 const KERN´´ = SVector{5, Float64}([0.25, 0.0, -0.5, 0.0, 0.25])
 
-"""
-Sample angles in the tangent plane.
-Values are optimized in 'optimize_sample_angles.jl'.
-"""
+"Sample angles in the tangent plane. Values were optimized, ref. `optimize_sample_angles.jl`."
 const VΦ = MVector{4, Float64}([-7, 7, 87, 93] .* (π / 180 ))
 
-"""
-Low-effort definition of distinguishable plane colors in roughly similar luminance.
-"""
-const RED_GREEN_BLUE = SMatrix{3, 3, N0f8}([ 0.95  0.0  0.0
-                                        0.0  0.5  0.0
-                                        0.0  0.0  0.9])
 
-"""
-Low-effort definition of curvature glyph color, used where overlain a colorful picture.
-"""
+"Low-effort definition of curvature glyph color, used where overlain a colorful picture."
 const COLOR_CURVGLYPH = RGB{N0f8}(0.85, 0.5, 0.9)
 
-"""
-Tinted grey, red, green, blue.
-"""
+
+"Tinted grey, red, green, blue."
 const PALETTE_GRGB = SVector{4, RGB{N0f8}}(
     [RGB(0.4785,0.5119,0.5096), RGB(0.957, 0.0, 0.078), RGB(0.0, 0.549, 0.0), RGB(0.0, 0.443, 1.0)])
 
-"""
-Close to grayscale, maximizes color distance to PALETTE_GRGB
-"""
+"Bright colors in roughly similar luminance."
+const PALETTE_RGB = (RGB{N0f8}(0.95, 0.0,  0.0),
+                     RGB{N0f8}(0.0,  0.5,  0.0),
+                     RGB{N0f8}(0.0,  0.0,  0.9))
+                                            
+"Close to grayscale, maximizes color distance to PALETTE_GRGB"
 const PALETTE_BACKGROUND = ColorScheme([
     RGB{N0f8}(0.004, 0.0, 0.008)
     RGB{N0f8}(0.149, 0.075, 0.02)
@@ -92,16 +81,21 @@ const PALETTE_BACKGROUND = ColorScheme([
     RGB{N0f8}(0.953, 0.678, 0.518)
         ])
 
-
-"""
-Limit for meaningful vector normalization.
-"""
+"Limit for meaningful vector normalization."
 const MAG_EPS = √(eps(Float64)) 
 
-
+"Fixed taper for vector glyphs, including bidirectional vectors"
 const VECTOR_REL_HALFWIDTH = 0.075
-# Type alias
+
+"Type alias"
 const TENSORMAP = MMatrix{2, 2, Float64, 4}
+
+"Direction 1 to be shown"
+const D1  = 0x01
+"Direction 2 to be shown"
+const D2  = 0x02
+"Bitwise: Specifies whether direction 1 and / or 2 are to be shown"
+const D12 = D1 | D2
 
 include("Test_matrices.jl")
 include("differential_geom/tangent_basis.jl")
@@ -113,13 +107,14 @@ include("type_definitions/domain_types.jl")
 include("type_definitions/direction_types.jl")
 include("type_definitions/bidirection_types.jl")
 include("type_definitions/glyphspec_types.jl")
-include("visualization/draw_bidirectional_glyph.jl")
 include("visualization/draw_plane.jl")
-include("visualization/draw_vector_glyph.jl")
+include("visualization/plot_glyph_given_value.jl")
 include("visualization/pack_glyphs.jl")
-include("calculate_and_draw_glyphs.jl")
-include("calculate_and_draw_streamlines.jl")
-include("calculate_and_paint_curvature_type.jl")
+include("visualization/calculate_and_draw_glyphs.jl")
+include("visualization/calculate_and_draw_streamlines.jl")
+include("visualization/calculate_and_paint_curvature_type.jl")
+include("visualization/default_ij_functor.jl")
+include("visualization/glyph_indices.jl")
 include("tensormap_functions.jl")
 # Function aliases
 const 𝐊 = principal_curvature_components

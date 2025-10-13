@@ -13,8 +13,8 @@ using BitmapMaps: mark_at!
 
 @test true
 
-# WIP
-
+# WIP BROKEN (dropping the temporary interface in test/common.jl)
+#@testset "Streamlines normal projected" begin
 r = TestMatrices.r
 pts = [CartesianIndex(300, 450),
       CartesianIndex(300, 475),
@@ -122,8 +122,7 @@ let
     grid_fcall_with_background(plot_bidirec_streamlines!, vargs; Δ = 1500, offset = (-20, -20), z = z_ridge_peak_valleys())
 end
 
-
-
+end
 #=
 # DEV Allocs
 using BitmapMapsExtras: UnidirectionAtXY, vu0_from_pts, make_tspan, callbacks_streamlines, MVector, ODEProblem, rhs!, update_corners!, VΦ

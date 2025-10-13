@@ -10,7 +10,7 @@
 
 
 # Low level. See `allocations_curvature` for comments.
-struct BidirectionOnGrid{F, T, LC}
+struct BidirectionOnGrid{F, T, LC} <: AbstractIJFunctor
     fdir!::F # e.g 𝐊!. Input signature: (K, vα, vβ, vκ, P, M, vϕ)
     z::Matrix{T} # Image-sized
     Ω::CartesianIndices{2, Tuple{UnitRange{Int64}, UnitRange{Int64}}}
@@ -62,7 +62,7 @@ end
 @define_show_with_fieldnames BidirectionInDomain
 
 """
-    struct BidirectionAtXY <: DirectionFunctor
+    struct BidirectionAtXY <: AbstractXYFunctor
         bid::BidirectionInDomain
         negy::NegateY
         d::Domain
@@ -119,7 +119,7 @@ end
 
 
 """
-    struct UnidirectionAtXY <: DirectionFunctor
+    struct UnidirectionAtXY <: AbstractXYFunctor
         baxy::BidirectionAtXY
         du::MVector{2, Float64}
         flip::Ref{Bool}
@@ -130,7 +130,7 @@ Top level for integrating to streamlines.
 `flip` carries data on which of two directions we're
 currently following. See 'reset!'.
 """
-struct UnidirectionAtXY{F, T, LC} <: DirectionFunctor
+struct UnidirectionAtXY{F, T, LC} <: AbstractXYFunctor
     baxy::BidirectionAtXY{F, T, LC}
     du::MVector{2, Float64}
     flip::Ref{Bool}
@@ -163,4 +163,4 @@ function reset!(uxy::UnidirectionAtXY)
     uxy.baxy.K .= 0.0
     uxy
 end
-reset!(fxy::DirectionFunctor) = fxy
+reset!(fxy::AbstractXYFunctor) = fxy
