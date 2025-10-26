@@ -1,87 +1,227 @@
 using Test
 using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
-using BitmapMapsExtras: plot_glyphs!, plot_glyphs, PALETTE_GRGB
+using BitmapMapsExtras: plot_glyphs!, plot_glyphs, PALETTE_GRGB, RGB
 using BitmapMapsExtras: GSTensor, GSTangentBasis, GSVector
+using BitmapMapsExtras: Vec2OnGrid, BidirectionOnGrid, 𝐧ₚᵤ!
 using BitmapMapsExtras: indices_scattered, indices_on_grid
 using BitmapMapsExtras: radial_distance_glyph, pack_glyphs!
-using BitmapMapsExtras: indices_on_grid
+using BitmapMapsExtras: indices_on_grid, default_ij_functor, 𝐊ᵤ!, 𝐊!
+using BitmapMaps: save_png_with_phys
 
 
+!@isdefined(hash_image) && include("common.jl")
 
-!@isdefined(hashstr) && include("common.jl")
-
-@testset "Plot tangent basis" begin 
+@testset "Plot tangent basis" begin
+    vhash = ["9b85d71b5edfe55a284bbb4907b67a2809ab931e", "04f14ea5f72f7e56cd3179252b5047f3e4011f55"]
+    COUNT[] = 0
     gs = GSTangentBasis()
     pts = [CartesianIndex((315, 215))]
     img = plot_glyphs(z_paraboloid(), pts, gs)
-    @test hashstr(img) == "49d9895e4a2f0babed325677c10adf5c17669f35"
+    @test is_hash_stored(img, vhash)
     img = background(z_paraboloid())
     pts = indices_on_grid(size(img))
     plot_glyphs!(img, z_paraboloid(), pts, gs)
-    @test hashstr(img) == "44dbb26b32cddae24eed94b18fbce0fc88917081"
+    @test is_hash_stored(img, vhash)
 end
 
-@testset "Projected normal vector" begin 
+
+@testset "Descent vector" begin 
+    vhash = ["fbfd0a976f81d605a7a67fe9e2456ce691ef3d77", "ca4b35dc0aa0897e34a30e24b91b8b1160a5ff79"]
+    COUNT[] = 0
     gs = GSVector()
     pts = [CartesianIndex((315, 215))]
+    # This creates the default ij functor based on z and gs: With function 𝐧ₚ!.
     img = plot_glyphs(z_paraboloid(), pts, gs)
-    @test hashstr(img) == "0f637ec62c13f4e449c60c6427489a8de62f1cbd"
+    @test is_hash_stored(img, vhash)
     img = background(z_paraboloid())
     pts = indices_on_grid(size(img))
-    plot_glyphs!(img, z_paraboloid(), pts, gs)
-    @test hashstr(img) == "df4f6aee96f0353ce73045994cc5d0f0bf791cb1"
+    plot_glyphs!(img, z_paraboloid(), pts, gs) 
+    @test is_hash_stored(img, vhash)
 end
 
-@testset "Curvature" begin 
-    gs = GSTensor( multip = 20000, strength = 1.0)
+@testset "Descent unit vector" begin 
+    vhash = ["6ddcfde16c64e1736db9a2c65c7981aac4369c3d", "3e238347523804239ee75c33a9409876ef38df6a"]
+    COUNT[] = 0
+    gs = GSVector()
+    pts = [CartesianIndex((315, 215))]
+    # 𝐧ₚᵤ! is not the default for a GSVector glyph spec, so we construct 
+    # the AbstractIJFunctor here:
+    vog = Vec2OnGrid(𝐧ₚᵤ!, z_paraboloid())
+    img = plot_glyphs(vog, pts, gs)
+    @test is_hash_stored(img, vhash)
+    img = background(vog)
+    pts = indices_on_grid(vog)
+    plot_glyphs!(img, vog, pts, gs)
+    @test is_hash_stored(img, vhash)
+end
+
+
+@testset "Curvature" begin
+    vhash = ["25461ae74fe83cd2903aadc09368ead0add36d29", "e798766ebd9238e12908aee6f2701411d2986851"]
+    COUNT[] = 0
+    # We don't make a functor object, because the
+    # default for a GSTensor is what we want.
+    gs = GSTensor( multip = 12000)
     pts = [CartesianIndex((315, 215))]
     img = plot_glyphs(z_paraboloid(), pts, gs)
-    @test hashstr(img) == "6b1ca65d6cc8cf2be9091be3b0733489cbb5ba75"
+    @test is_hash_stored(img, vhash)
     img = background(z_paraboloid())
     pts = indices_on_grid(size(img))
     plot_glyphs!(img, z_paraboloid(), pts, gs)
-    @test hashstr(img) == "90ae945fe278f2662b5b68e4c61bf23d1640d652"
+    @test is_hash_stored(img, vhash)
 end
+
+@testset "Unit curvature" begin
+    vhash = ["33aa58431f0e539d331d1d800da9755809e653c4", "1905f3f4c98a772c14e4c7f09c0037baea415477"]
+    COUNT[] = 0
+    gs = GSTensor( multip = 45)
+    pts = [CartesianIndex((315, 215))]
+    # 𝐊ᵤ! is not the default for a GSTensor glyph spec, so we construct 
+    # the AbstractIJFunctor here:
+    bdog = BidirectionOnGrid(𝐊ᵤ!, z_paraboloid())
+    img = plot_glyphs(bdog, pts, gs)
+    @test is_hash_stored(img, vhash)
+    img = background(bdog)
+    pts = indices_on_grid(bdog)
+    plot_glyphs!(img, bdog, pts, gs)
+    @test is_hash_stored(img, vhash)
+end
+
 
 @testset "Packed" begin
+    vhash = ["43a0f15aec21deae2c85024d7c28ed44221329ea", "19546f7b18ea588a044b65b39e76287b16283e70", "983b300e6bb0dd06142b1f30a780d08dc483efcd", "7a28f4ecdcc9e3ee202c615bff6211e5e453e14a", "7b15c6c74f22881e7da8618b21e7d0a90eeb5478", "fadbbc288db34d0cc6c8c9bc517030d9068b76e1", "1346ecb69b5de921cc40184735c16f82db814956"]
+    COUNT[] = 0
     z = z_ellipsoid(;tilt = 0.5)[100:400, 100:400]
     #
-    img = pack_glyphs_with_background(z,  GSTangentBasis(; halfsize = 15))
-    @test hashstr(img) == "82be1509834d02e89b1d762db5c10cf675348fa2"
+    img = background(z)
+    pack_glyphs!(img, z,  GSTangentBasis(; halfsize = 15))
+    @test is_hash_stored(img, vhash)
     # Packed projected normals
-    img = pack_glyphs_with_background(z, 
+    img = background(z)
+    pack_glyphs!(img, z, 
         GSVector(multip = 200, maxg = 200 * 0.2, color = PALETTE_GRGB[4]),
         scatterdist = 4)
-    @test hashstr(img) == "38b4d02cd1d97e4125de8dc2fedb4794ece3a96d"
+    @test is_hash_stored(img, vhash)
+    # Packed unit descent
+    vog = Vec2OnGrid(𝐧ₚᵤ!, z)
+    img = background(vog)
+    pack_glyphs!(img, vog, 
+        GSVector(multip = 20, maxg = 200 * 0.2, color = PALETTE_GRGB[4]),
+        scatterdist = 1)
+    @test is_hash_stored(img, vhash)
     # Packed curvature
-    img = pack_glyphs_with_background(z, 
+    img = background(z)
+    pack_glyphs!(img, z, 
         GSTensor(multip = 12000, ming = -25, colors=(RGB(0.0,0.049,0.0), RGB(0.0,0.443,1.0))))
-    @test hashstr(img) == "35cbb53f00144a777b25994a87a78b9506b045d4"
+    @test is_hash_stored(img, vhash)
+    # Packed unit curvature
+    bdog = BidirectionOnGrid(𝐊ᵤ!, z)
+    img = background(bdog)
+    pack_glyphs!(img, bdog, 
+        GSTensor(multip = 20, ming = -25, colors=(RGB(0.0,0.049,0.0), RGB(0.0,0.443,1.0))),
+        scatterdist = 1)
+    @test is_hash_stored(img, vhash)
     # Primary curvature direction (most positive value). 
-    img = pack_glyphs_with_background(z, 
+    img = background(z)
+    pack_glyphs!(img, z, 
         GSTensor(multip = 12000, ming = -25, direction = 1,
         colors=(RGB(0.0,0.049,0.0), RGB(0.0,0.443,1.0)))) 
-    @test hashstr(img) == "c2d63dbe0114a0c3a924f6927891fcdd24b950f2"
-    # Secondary curvature direction (most positive value). 
-    img = pack_glyphs_with_background(z, 
+    @test is_hash_stored(img, vhash)
+    # Secondary curvature direction (most positive value).
+    img = background(z) 
+    pack_glyphs!(img, z, 
         GSTensor(multip = 12000, ming = -25, direction = 2, 
             colors=(RGB(0.0,0.443,1.0), RGB(0.0,0.443,1.0))))
-    @test hashstr(img) == "9d9745bd3b44b8e33627ef5e4df34b1771f63e88"
+    @test is_hash_stored(img, vhash)
 end
 
-@testset "More examples" begin
-    pack_glyphs_with_background(z_cylinder_offset(π / 6), GSTensor(multip = 12000))
-    gs = GSTensor(multip = 5000, ming = -25)
-    pack_glyphs_with_background(z_ellipsoid(; tilt = π / 4), gs; scatterdist = 1)
-    gs = GSTensor(multip = 5000, strength = 10, ming = -25)
-    pack_glyphs_with_background(z_ellipsoid(; tilt = π / 4, a= 0.3), gs; scatterdist = 2)
-    pack_glyphs_with_background(z_paraboloid(), GSTensor(multip = 15000))
-    pack_glyphs_with_background(z_paraboloid(; a = 400, b = 600), GSTensor(multip = 10000 ))
-    pack_glyphs_with_background(z_sphere(), GSTensor(multip = 10000))
-    pack_glyphs_with_background(z_exp3(), GSTensor(multip = 7000))
-    pack_glyphs_with_background(z_cos(; mult = 50), GSTensor(multip = 25000))
-    pack_glyphs_with_background(z_ridge_peak_valleys(), GSTensor(multip = 4000 ), scatterdist = 2)
-    @test true
+@testset "More examples curvature" begin
+    vhash = vhash = ["dda981106fbdba38ccae4d6004cf628d733054e3", "b006ef40610d3be1e13f0dd5a66c016be775860f", "87b953a36bf264576bbf5c4c209ebb040bcac001", "074614f13d7b76f9b8364f3e45ab1de4ef10aa11", "3fe83b80336530f288bb62f1d920fa95c992f57d", "70088b51485d4410647aaf54117aa809928bae9a", "7fad0a34938af4fe959b45f19a7c841adb4c2314", "8346fc20fe8d0b6476849ba747389457299ee261"]
+    COUNT[] = 0
+    bdog = BidirectionOnGrid(𝐊!, z_cylinder_offset(π / 6))
+    img = background(bdog)
+    pack_glyphs!(img, bdog, GSTensor(multip = 12000))
+    @test is_hash_stored(img, vhash)
+    #
+    bdog = BidirectionOnGrid(𝐊!, z_ellipsoid(; tilt = π / 4))
+    img = background(bdog)
+    pack_glyphs!(img, bdog, GSTensor(multip = 12000, strength = 10))
+    @test is_hash_stored(img, vhash)
+    #
+    bdog = BidirectionOnGrid(𝐊!, z_ellipsoid(; tilt = π / 4, a = 0.3))
+    img = background(bdog)
+    pack_glyphs!(img, bdog, GSTensor(multip = 12000, strength = 10))
+    @test is_hash_stored(img, vhash)
+    #
+    bdog = BidirectionOnGrid(𝐊!, z_paraboloid())
+    img = background(bdog)
+    pack_glyphs!(img, bdog, GSTensor(multip = 12000))
+    @test is_hash_stored(img, vhash)
+    #
+    bdog = BidirectionOnGrid(𝐊!, z_paraboloid(; a = 400, b = 600))
+    img = background(bdog)
+    pack_glyphs!(img, bdog, GSTensor(multip = 10000))
+    @test is_hash_stored(img, vhash)
+    # 
+    bdog = BidirectionOnGrid(𝐊!, z_exp3())
+    img = background(bdog)
+    pack_glyphs!(img, bdog, GSTensor(multip = 7000, maxg = 100, ming=-100))
+    @test is_hash_stored(img, vhash)
+    #
+    bdog = BidirectionOnGrid(𝐊!, z_cos(;mult = 50))
+    img = background(bdog; α = 0.3)
+    pack_glyphs!(img, bdog, GSTensor(multip = 17000))
+    @test is_hash_stored(img, vhash)
+    #
+    bdog = BidirectionOnGrid(𝐊!, z_ridge_peak_valleys())
+    img = background(bdog; α = 0.3)
+    pack_glyphs!(img, bdog, GSTensor(multip = 5000))
+    @test is_hash_stored(img, vhash)
+end
+
+
+@testset "More examples unit curvature" begin
+    vhash = ["6662ab9dd72373e6318f77260971902ab9babb5c", "94356cf19e013fc63a1d29b61e98f0ad98f75d7e", "0c3e2e07d1e86952c627ea9ca4d536ed8295ac89", "f8a967162188d9733aabced5ac1fbd6b399294bd", "675b8ef76cee851a263a9c594de9d576c1610dcb", "4ea93a4ea55472c3b490fcefe8ecd01999b5c892", "3591970154ef4622b01c607926c246d194245d04", "1e4488bb36266c67db8476607ad7999deaa8c6ff"]
+    COUNT[] = 0
+    bdog = BidirectionOnGrid(𝐊ᵤ!, z_cylinder_offset(π / 6))
+    img = background(bdog)
+    pack_glyphs!(img, bdog, GSTensor())
+    @test is_hash_stored(img, vhash)
+    #
+    bdog = BidirectionOnGrid(𝐊ᵤ!, z_ellipsoid(; tilt = π / 4))
+    img = background(bdog)
+    pack_glyphs!(img, bdog, GSTensor(multip = 30))
+    @test is_hash_stored(img, vhash)
+    #
+    bdog = BidirectionOnGrid(𝐊ᵤ!, z_ellipsoid(; tilt = π / 4, a = 0.3))
+    img = background(bdog)
+    pack_glyphs!(img, bdog, GSTensor(multip = 30))
+    @test is_hash_stored(img, vhash)
+    #
+    bdog = BidirectionOnGrid(𝐊ᵤ!, z_paraboloid())
+    img = background(bdog)
+    pack_glyphs!(img, bdog, GSTensor())
+    @test is_hash_stored(img, vhash)
+    #
+    bdog = BidirectionOnGrid(𝐊ᵤ!, z_paraboloid(; a = 400, b = 600))
+    img = background(bdog)
+    pack_glyphs!(img, bdog, GSTensor(multip = 10000))
+    @test is_hash_stored(img, vhash)
+    # 
+    bdog = BidirectionOnGrid(𝐊ᵤ!, z_exp3())
+    img = background(bdog)
+    pack_glyphs!(img, bdog, GSTensor(multip = 20, maxg = 100, ming=-100))
+    @test is_hash_stored(img, vhash)
+    #
+    bdog = BidirectionOnGrid(𝐊ᵤ!, z_cos(;mult = 50))
+    img = background(bdog; α = 0.3)
+    pack_glyphs!(img, bdog, GSTensor(multip = 20))
+    @test is_hash_stored(img, vhash)
+    #
+    bdog = BidirectionOnGrid(𝐊ᵤ!, z_ridge_peak_valleys())
+    img = background(bdog; α = 0.3)
+    pack_glyphs!(img, bdog, GSTensor(;multip = 15, strength = 4))
+    @test is_hash_stored(img, vhash)
 end
 

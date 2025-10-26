@@ -1,11 +1,9 @@
 using Test
 using BitmapMapsExtras
 using BitmapMapsExtras: LogMapper, N0f8, spray!, display_if_vscode, RGBA
-using BitmapMapsExtras: COLOR_CURVGLYPH, apply_color_by_coverage!
+using BitmapMapsExtras: COLOR_CURVGLYPH, apply_color_by_coverage!, RGB
 
-# using UnicodePlots
-# using BenchmarkTools
-!@isdefined(hashstr) && include("common.jl")
+!@isdefined(is_hash_stored) && include("common.jl")
 
 
 ####################
@@ -93,6 +91,8 @@ end
 # Cone lines
 ############
 @testset "Cone lines and optional transpacency layer" begin
+    vhash = ["58b25a721aa1f3de9a809d16f33d134815adbec8", "eab63c1862b9774d3dfd5ba1ff88dbc879349961"]
+    COUNT[] = 0
     img = zeros(RGBA{N0f8}, 62, 160);
     img .= RGBA{N0f8}(1, 0.494, 0.43, 1);
     cov = zeros(Float32, size(img)...);
@@ -104,13 +104,13 @@ end
         end
     end
     apply_color_by_coverage!(img, cov, RGB{N0f8}(1,1,1))
-    @test hashstr(img) == "9a5de89cc254cbe0e59e4080f6915bd790b29200"
+    @test is_hash_stored(img, vhash)
     #
     img = zeros(RGB{N0f8}, 62, 160);
     img .= RGB{N0f8}(0, 0, 0);
     # COLOR_CURVGLYPH isa RGB{N0f8}
     apply_color_by_coverage!(img, cov, COLOR_CURVGLYPH)
     @test img isa Matrix{<:RGB}
-    @test hashstr(img) == "4fdebbde7a4cd0cfa71af8bd1add54ebc474aa91"
+    @test is_hash_stored(img, vhash)
 end
 

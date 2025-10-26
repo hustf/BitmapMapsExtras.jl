@@ -43,7 +43,7 @@ These functions have discrete domains. They are fast estimators for properties a
 
 Where BitmapMaps estimates based on a 3x3 grid, this uses a 5x5 grid around each pixel.
 
-`𝐧ₚ!` is the default function for making a `DirectionOnGrid` functor or object. `DirectionOnGrid` is the default `AbstractIJFunctor` for `GSVector` glyph specifications.
+`𝐧ₚ!` is the default function for making a `Vec2OnGrid` functor or object. `Vec2OnGrid` is the default `AbstractIJFunctor` for `GSVector` glyph specifications.
 
 
 - Tangent basis, `tangent_basis`
@@ -56,9 +56,9 @@ Where BitmapMaps estimates based on a 3x3 grid, this uses a 5x5 grid around each
 
 ## Streamlines
 
-The familiar example is tracing a curve directly downhill from a point. Doing this accurately requires that we make continuous domains. We do this internally with `DirectionAtXY` or `BidirectionAtXY` types.
+The familiar example is tracing a curve directly downhill from a point. Doing this accurately requires that we make continuous domains. We do this internally with `Vec2AtXY` or `BidirectionAtXY` types.
 
-`DirectionAtXY` enables integration along lines of descent or ascent. Visually, that
+`Vec2AtXY` enables integration along lines of descent or ascent. Visually, that
 traces out a streamline. If we are only interested in the streamline shape for graphical purposes, we can integrate `𝐧ₚᵤ` (the pure direction of descent) instead of `𝐧ₚ`. The result of integration along such a path is simple the elevation difference between start and finish. 
 
 `BidirectionAtXY` enables streamline integration along lines of curvature. Since curvature is a matrix rather than a vector, we must choose between following lines of maximal or minimal curvature. The result of integration along such a line is change in steepness angle. However, since we're dealing with 2.5D height maps, this restricts the range to <-π, π>. By intuition, any streamline ought to be cyclic, or end in a plane like a lake. 
@@ -73,7 +73,25 @@ We're using [OrdinaryDiffEq](https://docs.sciml.ai/OrdinaryDiffEq/stable/) to ma
 
 ## Current progress
 
+Version 0.0.15
+
+First joint and working interface for streamlines:
+
+- `plot_streamlines!(img, fxy::AbstractXYFunctor, pts; stroke = Stroke(), odekws...)`
+
+The "functor" type names have been modified to highlight `vector` vs `bidirection`.
+
+- Vec2AtXY{F, T}               <: AbstractXYFunctor
+- SelectedVec2AtXY{F, T, LC}   <: AbstractXYFunctor
+- Vec2OnGrid{F, T}             <: AbstractIJFunctor (for glyphs)
+- BidirectionOnGrid{F, T, LC}  <: AbstractIJFunctor (for glyphs)
+
+The streamlines for `SelectedVec2AtXY` has some ugly internals, but are consistently working. Revisions expected here.
+
+In tests: `is_hash_stored` simplifies updating. All tests passing.
+
 Version 0.0.14
+
 Fully functional public API for all glyphs:
 - `plot_glyphs!`
 - `pack_glyphs!` 
@@ -85,9 +103,11 @@ Glyph packing passes all tests.
 the temporary interface `grid_fcall` in 'common.jl' and will be working on a new streamlines interface.
 
 Version 0.0.13
+
 Added more crash tests for 'pack_glyphs'. Mostly working, but static dispatch on tensor glyph directions would be useful. Currently, packing 2d vectors will trigger an error. We plan to revise the GSTensor type.
 
 Version 0.0.12
+
 Add 'pack_glyphs' and restructure plotting function hierarchy. So far working for vectors, but more restructuring needed.
 
 Version 0.0.11 Add missed file

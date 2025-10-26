@@ -6,8 +6,10 @@
 """
     indices_on_grid((h, w)::Tuple{Int64, Int64}; Δ::Int = 100,
         offset::Tuple{Int64, Int64} = (0, 0))
-        h, w = size(img)
+    indices_on_grid(fxy; Δ = 100, offset = (0, 0))
     ---> CartesianIndices{2, Tuple{StepRange{Int64, Int64}, StepRange{Int64, Int64}}}
+
+The first argument can be a tuple, an image, an AbstractXYFunctor or any x for which size(x) works.
 """
 function indices_on_grid((h, w)::Tuple{Int64, Int64}; Δ::Int = 100,
     offset::Tuple{Int64, Int64} = (0, 0))
@@ -23,7 +25,7 @@ function indices_on_grid((h, w)::Tuple{Int64, Int64}; Δ::Int = 100,
     rngj = loj:Δ:hij
     grpts = CartesianIndices((rngi, rngj))
 end
-
+indices_on_grid(fxy; Δ = 100, offset = (0, 0)) = indices_on_grid(size(fxy); Δ, offset )
 
 """
     indices_scattered(R::CartesianIndices; scatterdist = 3.0, seed = MersenneTwister(123))

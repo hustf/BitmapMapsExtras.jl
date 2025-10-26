@@ -1,7 +1,7 @@
  # This defines types for
- # specifying glyph properties.
- # NOT currently implemented 
-
+ # specifying 
+ # - glyph properties.
+ # - streamline properties
 abstract type AbstractGlyphSpec end 
 
 struct GSTensor{D, N} <: AbstractGlyphSpec
@@ -93,3 +93,29 @@ struct GSTangentBasis <: AbstractGlyphSpec
 end
 GSTangentBasis(;halfsize = 30, colors = PALETTE_RGB) = GSTangentBasis(halfsize, colors)
 @define_show_with_fieldnames GSTangentBasis
+
+
+abstract type AbstractCurveSpec end
+"""
+Stroke(;r = 1.2f0, strength = 0.7f0, color = PALETTE_GRGB[4], tdensity = 0.05)
+
+- `tdensity` - How many points per "time" unit we extract from the differential equation's continuous solution. 
+- `r` - Spray radius. This applies after the touched pixels are identified. Around each pixel, apply a 
+   sprayed circle. Radius > 3 => the centre pixels are not sprayed (since they're probably covered by neighbouring sprays).
+- `strength` The nominal coverage applied in each spray (the coverage tapers off). 
+   Coverage accumulates 'infinitely' if a pixel is sprayed 'infinitely' many times. After all 
+    spraying along streamlines is finished, coverage will be converted non-linearly to color 
+    application, see `apply_color_by_coverage`. Hence, small `strength` makes streamlines less 
+    visible, unless where many streamlines overlap.
+- `color`
+"""
+struct Stroke <: AbstractCurveSpec
+    r::Float32
+    strength::Float32 # Graphical spray strength
+    color::RGB{N0f8}
+    tdensity::Float64 # Points per "time"
+end
+function Stroke(;r = 1.2f0, strength = 0.7f0, color = PALETTE_GRGB[4], tdensity = 0.05)
+    Stroke(Float32(r), Float32(strength), color, tdensity)
+end
+@define_show_with_fieldnames Stroke

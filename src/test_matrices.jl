@@ -13,24 +13,30 @@ julia> using BitmapMapsExtras.TestMatrices: I0
 julia> varinfo(TestMatrices)
   name                                  size summary
   ––––––––––––––––––––––––––––––– –––––––––– –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
-  TestMatrices                    34.326 KiB Module
+  TestMatrices                    21.970 KiB Module
+  background                         0 bytes background (generic function with 3 methods)
   principal_curvatures_paraboloid    0 bytes principal_curvatures_paraboloid (generic function with 2 methods)
-  r                                  8 bytes Int64
+  z_cos                              0 bytes z_cos (generic function with 1 method)
   z_cylinder                         0 bytes z_cylinder (generic function with 1 method)
   z_cylinder_offset                  0 bytes z_cylinder_offset (generic function with 1 method)
   z_ellipsoid                        0 bytes z_ellipsoid (generic function with 1 method)
-  z_paraboloid                       0 bytes z_paraboloid (generic function with 1 method)
-  z_sphere                           0 bytes z_sphere (generic function with 1 method)
-  z_ridge_peak_valleys               0 bytes z_ridge_peak_valleys (generic function with 1 method)
-  z_cos                              0 bytes z_cos (generic function with 1 method)
   z_exp3                             0 bytes z_exp3 (generic function with 1 method)
+  z_paraboloid                       0 bytes z_paraboloid (generic function with 1 method)
+  z_ridge_peak_valleys               0 bytes z_ridge_peak_valleys (generic function with 1 method)
+  z_sphere                           0 bytes z_sphere (generic function with 1 method)
+
 ```
 
 """
 module TestMatrices
+import ..SelectedVec2AtXY, ..Vec2AtXY, ..z_matrix, ..PALETTE_BACKGROUND
+import ..AbstractIJFunctor, ..AbstractXYFunctor
+import ImageCore
+using ImageCore: scaleminmax, RGBA, N0f8
 export z_cylinder, z_cylinder_offset, z_sphere, z_ellipsoid, 
     z_paraboloid, z_cos, z_exp3, z_ridge_peak_valleys
 export principal_curvatures_saddle, principal_curvatures_paraboloid
+export background
 ##############################################
 # Define (parameters for) test array functions
 ##############################################
@@ -239,5 +245,26 @@ function principal_curvatures_paraboloid(pt::CartesianIndex; a = 1.0, b = 0.5a)
     principal_curvatures_paraboloid(x, y; a, b)
 end
 
+"""
+    background(z; α = 1.0)
+    background(saxy::SelectedVec2AtXY; α = 1.0)
+    background(vaxy::Vec2AtXY; α = 1.0)
 
+An image of the same size as input. α is the opacity (0 to 1).
+"""
+function background(z; α = 1.0)
+    foo = scaleminmax(extrema(z)...)
+    scaled_z = foo.(z)
+    img = map(scaled_z) do z
+        RGBA{N0f8}(get(PALETTE_BACKGROUND, z), α)
+    end
+    # Add simple contour lines, too
+    Δc = -(-(extrema(z)...)) / 10 # elevation spacing
+    wc = Δc / 10         # 'width' of contour lines, in height....
+    map!(img, z, img) do zz, pix
+        mod(zz, Δc) < wc ? RGBA{N0f8}(0.1, 0.1, 0.1, 1.0) : pix 
+    end
 end
+background(fxy::AbstractXYFunctor; α = 1.0) = background(z_matrix(fxy); α)
+background(fij::AbstractIJFunctor; α = 1.0) = background(z_matrix(fij); α)
+end # module

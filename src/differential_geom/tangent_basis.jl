@@ -1,6 +1,6 @@
 # This file contains tangent_basis!, tangent_basis  and 
 # supporting functions. Mutating versions for tight loops.
-# Also 𝐧ₚ!, the normalized surface normal vector projected onto the base plane,
+# Also descent!, the normalized surface normal vector projected onto the base plane,
 # sampled from a 5x5 window.
 
 # Relies on constants KERN1´ and KERN2´
@@ -213,13 +213,15 @@ function angle_tangent_to_xy(a, d, e, g, h, i, ϕ)
 end
 
 """
-    𝐧ₚ(M)
+    descent(M)
 
-Projection of `𝐧` into the xy-plane (y is up, which is a compromise convention here).
+Alias: 𝐧ₚ
+
+Projection of surface normal `𝐧` into the xy-plane (y is up, which is a compromise convention here).
 Input is a 5x5 matrix of numbers representing elevation. 
 Calling `𝐧ₚ!` is preferrable for speed.
 """
-function 𝐧ₚ(M)
+function descent(M)
     v = Array{Float64, 1}(undef, 2)
     𝐧ₚ!(v, M)
 end
@@ -227,9 +229,11 @@ end
 
 
 """
-    𝐧ₚ!(v, M)
+    descent!(v, M)
 
-Also see `𝐧ₚᵤ!`.
+Alias: 𝐧ₚ!. 
+
+Also see `descent_unit!`.
 
 Projection of `𝐧` into the xy-plane (y is up). `𝐧` is the unit normal vector to the centre of elevation surface `z`.
 
@@ -252,49 +256,31 @@ julia> 𝐧ₚ!([0.0, 0.0], [2i for i = 1:5, j = 1:5])
   0.894427906538234
 ```
 """
-function 𝐧ₚ!(v, M)
+function descent!(v, M)
     dz_x = dz_over_dx(M)
     dz_y = dz_over_dy(M)
-    mag = sqrt(1 + dz_x^2 + dz_y^2)
+    # Note three components before projection
+    mag = hypot(1.0, dz_x, dz_y)
     v[1] = -dz_x / mag
     v[2] = -dz_y / mag
     v
 end
 
 """
-    𝐧ₚᵤ!(v, M)
+    descent_unit!(v, M)
 
-Also see `𝐧ₚ!`.
+Alias: 𝐧ₚᵤ!.
+
+See `descent!`.
+
+The 2d vector is normalized to length 1, or set to zero when below a threshold. 
 
 Normalized projection of 𝐧 into the xy-plane (y is up). `𝐧` is the normal vector to the elevation surface `z`.
-
-`M` is a 5x5 view of the elevation surface `z`. This function estimates at `M[3, 3]`.
-
-`v` is mutated to the output.
-
-    v[1]: x ("j")-component (columns) of 𝐧ₚᵤ,
-    v[2]: y ("-i")-component of (rows) of 𝐧ₚᵤ 
-
-Refers global const KERN1´  and KERN2´. KERN2´ values ensure that 'y is up'.
-
-# Example
-
-```
-julia> 𝐧ₚᵤ!([0.0, 0.0], [2i for i = 1:5, j = 1:5])
-2-element Vector{Float64}:
- -9.020525992975423e-17
-  1.0
-```
 """
-function 𝐧ₚᵤ!(v, M)
+function descent_unit!(v, M)
     dz_x = dz_over_dx(M)
     dz_y = dz_over_dy(M)
-    mag = sqrt(dz_x^2 + dz_y^2)
-    if mag < MAG_EPS
-        v .= 0.0
-    else
-        v[1] = -dz_x / mag
-        v[2] = -dz_y / mag
-    end
-    v
+    v[1] = -dz_x
+    v[2] = -dz_y
+    normalize_or_zero!(v)
 end

@@ -2,120 +2,75 @@
 # because it allows us to interpolate within the solution.
 
 ##################
-# Draw streamlines
+# Plot streamlines
 ##################
+"""
+    plot_streamlines(fxy::AbstractXYFunctor, pts; 
+        stroke = Stroke(), odekws...)
+    --> Matrix{RGBA{N0f8}}
+
+# Arguments
+
+- `fxy` determines which curve to follow, and also the size of the output image. 
+  See ``
+- `pts` is a vector of starting points. See `indices_on_grid`.
+- `stroke` specifies the appearance of each streamline.
+- `odekws` is a list of keywords for the ordinary differential equation. `dtmax = 1.0` is an example: A smaller timestep can solve many problems.
+
+# Example, 2d vector field
+
+```
+julia> using BitmapMapsExtras: TestMatrices
+
+julia> vaxy = Vec2AtXY(𝐧ₚ!, z_cylinder(π / 6));
+
+julia> img = background(vaxy)
+
+julia> img = plot_streamlines!(img, vaxy, pts; stroke = Stroke(color = PALETTE_GRGB[2]), dtmax = 1.0)
+```
+
+# Example, 2d vector selected from tensor map
+
+
 
 """
-    plot_streamlines(f, z, pts; 
-        sol_density = 0.05, r = 1.2f0, 
-        strength = 0.7f0, rgb = COLOR_CURVGLYPH,
-        odekws...)
-"""
-function plot_streamlines(f, z, pts; 
-        sol_density = 0.05, r = 1.2f0,
-        strength = 0.7f0, rgb = COLOR_CURVGLYPH,
-        odekws...)
+function plot_streamlines(fxy::AbstractXYFunctor, pts; 
+        stroke = Stroke(), odekws...)
     # Allocate an empty color image (since user didn't supply one)
-    img = zeros(RGBA{N0f8}, size(z)...)
+    img = zeros(RGBA{N0f8}, size(fxy)...)
     # Modify the image
-    plot_streamlines!(f, z, pts, img; sol_density, r, strength, rgb)
+    plot_streamlines!(img, fxy, pts; stroke, odekws...)
 end
 
 """
-    plot_streamlines!(img, z, pts, f; 
-        sol_density = 0.05, r = 1.2f0,
-        strength = 0.7f0, rgb = COLOR_CURVGLYPH),
-        odekws...)
+    plot_streamlines!(img, fxy::AbstractXYFunctor, pts; 
+        stroke = Stroke(), odekws...)
+
+See `plot_streamlines`. Use this method when you already have an image.
 """
-function plot_streamlines!(img, z, pts, f; 
-    sol_density = 0.05, r = 1.2f0,
-    strength = 0.7f0, rgb = COLOR_CURVGLYPH, 
-    odekws...)
+function plot_streamlines!(img, fxy::AbstractXYFunctor, pts; 
+    stroke = Stroke(), odekws...)
     # Coverage buffer
     cov = zeros(Float32, size(img)...)
     # Modify coverage
-    plot_streamlines!(cov, z, pts, f; sol_density, r, strength, odekws...)
+    plot_streamlines!(cov, fxy, pts; stroke, odekws...)
     # Apply color by coverage
-    apply_color_by_coverage!(img, cov, rgb)
+    apply_color_by_coverage!(img, cov, stroke.color)
     img
 end
 
-"""
-    plot_streamlines!(cov::Array{Float32}, f, z, pts; 
-        sol_density = 0.05, r = 1.2f0, strength = 0.7f0,
-        odekws...)
 
-# Keyword arguments
 
-- `sol_density` - How far along a streamline's `t` parameter we move before checking which pixel this point 
-    would match. Reduce this to plot all covered pixels. If Δt ≈ 1 pixel width, a value of 10 would result in
-    pixels visually spaced apart.
-- `r` - This applies after the touched pixels are identified. Around each pixel, apply a 
-   sprayed circle with radius r. If r > 3, the centre pixels are not sprayed.
-- `strength` The nominal coverage applied in each spray (coverage tapers off). 
-   Coverage accumulates 'infinitely' if a pixel is sprayed 'infinitely' many times. After all 
-    spraying along streamlines is finished, coverage will be converted non-linearly to color 
-    application, see `apply_color_by_coverage`. Hence, small `strength` makes streamlines less 
-    visible, unless where many streamlines overlap.
 """
-function plot_streamlines!(cov::Array{Float32}, z, pts, f; 
-        sol_density = 0.05, r = 1.2f0, strength = 0.7f0,
-        odekws...)
+    plot_streamlines!(cov::Array{Float32}, fxy::AbstractXYFunctor, pts; 
+        stroke = Stroke(), odekws...)
+"""
+function plot_streamlines!(cov::Array{Float32}, fxy::AbstractXYFunctor, pts; 
+        stroke = Stroke(), odekws...)
     # Indexed points on the streamlines
-    spts = get_streamlines_points(f, z, pts, sol_density; odekws...)
+    spts = get_streamlines_points(fxy, pts, stroke.tdensity; odekws...)
     # Plot points
-    draw_streamlines_points!(cov, spts, r, strength)
-    cov
-end
-
-
-"""
-    plot_bidirec_streamlines(f, z, pts, primary::Bool, flip::Bool; 
-        sol_density = 0.05, r = 1.2f0, 
-        strength = 0.7f0, rgb = COLOR_CURVGLYPH,
-        odekws...)
-"""
-function plot_bidirec_streamlines(f, z, pts, primary::Bool, flip::Bool; 
-        sol_density = 0.05, r = 1.2f0,
-        strength = 0.7f0, rgb = COLOR_CURVGLYPH,
-        odekws...)
-    # Allocate an empty color image (since user didn't supply one)
-    img = zeros(RGBA{N0f8}, size(z)...)
-    # Modify the image
-    plot_bidirec_streamlines!(img, z, pts, f, primary, flip; sol_density, r, strength, rgb, odekws...)
-end
-
-"""
-    plot_bidirec_streamlines!(img, z, pts, f, primary::Bool, flip::Bool; 
-        sol_density = 0.05, r = 1.2f0,
-        strength = 0.7f0, rgb = COLOR_CURVGLYPH),
-        odekws...)
-"""
-function plot_bidirec_streamlines!(img, z, pts, f, primary::Bool, flip::Bool; 
-    sol_density = 0.05, r = 1.2f0,
-    strength = 0.7f0, rgb = COLOR_CURVGLYPH, 
-    odekws...)
-    # Coverage buffer
-    cov = zeros(Float32, size(img)...)
-    # Modify coverage
-    plot_bidirec_streamlines!(cov, f, z, pts, primary, flip; sol_density, r, strength, odekws...)
-    # Apply color by coverage
-    apply_color_by_coverage!(img, cov, rgb)
-    img
-end
-
-"""
-    plot_bidirec_streamlines!(cov::Array{Float32}, f, z, pts, primary::Bool, flip::Bool; 
-        sol_density = 0.05, r = 1.2f0, strength = 0.7f0,
-        odekws...)
-"""
-function plot_bidirec_streamlines!(cov::Array{Float32}, f, z, pts, primary::Bool, flip::Bool; 
-        sol_density = 0.05, r = 1.2f0, strength = 0.7f0,
-        odekws...)
-    # Indexed points on the streamlines
-    spts = get_bidirec_streamlines_points(f, z, pts, sol_density, primary, flip; odekws...)
-    # Plot points
-    draw_streamlines_points!(cov, spts, r, strength)
+    draw_streamlines_points!(cov, spts, stroke.r, stroke.strength)
     cov
 end
 
@@ -124,35 +79,18 @@ end
 # Callees for OrdinaryDiffEq
 ############################
 
-
-
-# ODE right-hand side, not bidirectional
-function rhs!(du, u, p::DirectionAtXY, t)
-    v = p(u[1], u[2])
-    du[1] = v[1]
-    du[2] = v[2]
-    du
-end
-
 # ODE right-hand side
-function rhs!(du, u, uxy::UnidirectionAtXY, t)
-    # Calling uxy mutates uxy.du and returns the value
-    mag = norm(uxy(u[1], u[2]))
-    # Normalize uxy.du to unit length or zero length
-    if mag < MAG_EPS
-        #@debug "zero mag"
-        uxy.du .= 0.0
-    else
-        uxy.du ./= mag
-    end
-    du .= uxy.du
+function rhs!(du, u, fxy!::AbstractXYFunctor, t)
+    # Calling fxy mutates fxy.v and returns the value
+    du .= fxy!(u[1], u[2])
 end
+
 # Exit criterion 
 function signed_distance_within_domain(u, t, integrator::ODEIntegrator)
     @assert integrator.p isa AbstractXYFunctor
     signed_distance_within_domain(integrator.p, u[1], u[2])
 end
-signed_distance_within_domain(uxy::UnidirectionAtXY, x, y) =  signed_distance_within_domain(uxy.baxy.d, x, y)
+signed_distance_within_domain(saxy::SelectedVec2AtXY, x, y) =  signed_distance_within_domain(saxy.baxy.d, x, y)
 signed_distance_within_domain(fxy::AbstractXYFunctor, x, y) =  signed_distance_within_domain(fxy.d, x, y)
 
 # Exit criterion. The hard coded criterion here is not
@@ -161,9 +99,9 @@ signed_distance_within_domain(fxy::AbstractXYFunctor, x, y) =  signed_distance_w
 # vector set to zero when under that threshold)
 function too_flat(u, t, integrator::ODEIntegrator)
     out = max(-1.0, norm(u[1], u[2]) - 0.008)
-    if out < 0f0
+    #if out < 0f0
         #@debug "tooflat $out   "
-    end
+    #end
     out
 end 
 
@@ -175,8 +113,8 @@ function condition_flip_bidirection(u, t, integrator::ODEIntegrator)
     @assert t > integrator.tprev
     is_pointing_roughly_opposite(integrator.p, integrator.uprev, u, t)
 end
-function is_pointing_roughly_opposite(uxy::UnidirectionAtXY, u0, u1, t)
-    dprod = dot_product_with_previous(uxy, u0, u1)
+function is_pointing_roughly_opposite(saxy::SelectedVec2AtXY, u0, u1, t)
+    dprod = dot_product_with_previous(saxy, u0, u1)
     # Direction change is 
     # 138° < direction change <  228°
     if dprod < - 0.668
@@ -187,68 +125,40 @@ end
 
 function affect_flip_bidirection!(integrator)
     integrator.p.flip[] = ! integrator.p.flip[] 
-    integrator.p.du .=- integrator.p.du
+    integrator.p.v .=- integrator.p.v
     nothing
 end
 
 function condition_swap_primary_secondary(u, t, integrator::ODEIntegrator)
     @assert t > integrator.tprev
     # TODO: This repeats some evaluations. Perhaps better share one discrete callback?
-    is_pointing_roughly_perpendicular(integrator.p, integrator.uprev, u, t)
+    is_pointing_roughly_perpendicular(integrator.p, integrator.uprev, u)
 end
 function affect_swap_primary_secondary!(integrator)
-    uxy = integrator.p
-    uxy.baxy.primary[] = ! uxy.baxy.primary[]
-    # Anyway, we have a 50% chance of picking the right flip direction.
-    # Perhaps it would be better to join the conditions into one, and later
-    # call an affect with predestined flip and primary fields.
-
-
-
-    #= Has no effect on the solution....
-    # Modify which vector is taken from BidirectionAtXY into UnidirectionAtXY
-    if uxy.baxy.primary[]
-        if uxy.flip[]
-            uxy.du .=- uxy.baxy.K[:, 1]
-        else
-            uxy.du .= uxy.baxy.K[:, 1]
-        end
-    else
-        if uxy.flip[]
-            uxy.du .=- uxy.baxy.K[:, 2]
-        else
-            uxy.du .= uxy.baxy.K[:, 2]
-        end
-    end
-    # Normalize uxy.du to unit length or zero length
-    mag = norm(uxy.du)
-    if mag < MAG_EPS
-        uxy.du .= 0.0
-    else
-        uxy.du ./= mag
-    end
-    =#
+    saxy = integrator.p
+    saxy.baxy.primary[] = ! saxy.baxy.primary[]
     nothing
 end
 
 
-function is_pointing_roughly_perpendicular(uxy::UnidirectionAtXY, u0, u1, t)
-    dprod = dot_product_with_previous(uxy, u0, u1)
+# This needs some prettying up.
+# See 'dot_product_with_previous' and 'is_close_to_perpendicular'.
+function is_pointing_roughly_perpendicular(saxy::SelectedVec2AtXY, u0, u1)
+    dprod = dot_product_with_previous(saxy, u0, u1)
     # Direction change is 
     # +/-48° < direction change <  +/- 138° 
     if -0.668 < dprod < 0.668
-        #print("prim@$t  ")
         return true
     end
     false
 end
 
 """
-    dot_product_with_previous(uxy::UnidirectionAtXY, u0, u1)
+    dot_product_with_previous(saxy::SelectedVec2AtXY, u0, u1)
 
 Returns 1.0 if the dot product can't be evaluated.
 """
-function dot_product_with_previous(uxy::UnidirectionAtXY, u0, u1)
+function dot_product_with_previous(saxy::SelectedVec2AtXY, u0, u1)
     # Vector from last solution point
     Δu = (u1 - u0)
     magΔ = norm(Δu)
@@ -256,7 +166,7 @@ function dot_product_with_previous(uxy::UnidirectionAtXY, u0, u1)
     # ....normalized to unit length
     Δu ./= magΔ
     # Normalized differential du1 
-    du = uxy.du
+    du = saxy.v
     norm(du) < 0.98 && return 1.0
     # Dot product    
     Δu[1] * du[1] + Δu[2] * du[2]
@@ -266,33 +176,21 @@ end
 # Prepare and solve the differential equation for each streamline
 #################################################################
 
-function get_bidirec_streamlines_points(f, z, pts, sol_density, primary::Bool, flip::Bool;
+function get_streamlines_points(fxy::AbstractXYFunctor, pts, sol_density;
      odekws...)
     #
     @assert eltype(pts) <: CartesianIndex{2}
     # Cache, function, etc. f or integration
-    uxy = UnidirectionAtXY(f, z, primary, flip)
+    #saxy = SelectedVec2AtXY(f, z, primary, flip)
     # Find solutions, i.e. streamlines
-    sols = get_streamlines_xy(uxy, pts; odekws...)
+    sols = get_streamlines_xy(fxy, pts; odekws...)
     # NegateY (function for i --> y and for y --> i)
-    negy = uxy.baxy.negy
+    negy = fxy.negy
     # Extract indexed points from streamlines
     map(sol -> extract_discrete_points_on_streamline(sol, negy, sol_density), sols)
 end
 
 
-function get_streamlines_points(f, z, pts, sol_density; 
-    odekws...)
-    #
-    @assert eltype(pts) <: CartesianIndex{2}
-    daxy = DirectionAtXY(f, z)
-    # NegateY (for i --> y and for y --> i)
-    negy = daxy.negy
-    # Find solutions, i.e. streamlines
-    sols = get_streamlines_xy(daxy, pts; odekws...)
-    # Extract indexed points from streamlines
-    map(sol -> extract_discrete_points_on_streamline(sol, negy, sol_density), sols)
-end
 
 function get_streamlines_xy(fxy::T, pts; odekws...) where T<:AbstractXYFunctor
     @assert eltype(pts) <: CartesianIndex{2}
@@ -305,11 +203,11 @@ end
 
 """
     vu0_from_pts(baxy::BidirectionAtXY, pts)
-    vu0_from_pts(uxy::UnidirectionAtXY, pts)
+    vu0_from_pts(saxy::SelectedVec2AtXY, pts)
     ---> 
 """
 vu0_from_pts(fxy::T, pts) where T<:AbstractXYFunctor = vu0_from_pts(fxy.negy, pts)
-vu0_from_pts(uxy::UnidirectionAtXY, pts) = vu0_from_pts(uxy.baxy.negy, pts)
+vu0_from_pts(saxy::SelectedVec2AtXY, pts) = vu0_from_pts(saxy.baxy.negy, pts)
 function vu0_from_pts(negy::NegateY, pts)
     @assert eltype(pts) <: CartesianIndex{2}
     vx = map(pt -> float(pt.I[2]), pts)
@@ -357,7 +255,7 @@ function callbacks_streamlines(fxy; odekws...)
     add_discrete_callbacks!(vdcb, fxy)
     CallbackSet(vccb..., vdcb...)
 end
-function add_discrete_callbacks!(vdcb, uxy::UnidirectionAtXY)
+function add_discrete_callbacks!(vdcb, saxy::SelectedVec2AtXY)
     # Flip selected direction callback
     push!(vdcb, DiscreteCallback(condition_flip_bidirection, affect_flip_bidirection!, save_positions=(true,true)))
     # Flip primary <--> secondary
@@ -365,79 +263,19 @@ function add_discrete_callbacks!(vdcb, uxy::UnidirectionAtXY)
 end
 add_discrete_callbacks!(vdcb, fxy) = vdcb 
 
-function get_solution_xy(daxy, vu0; odekws...)
-    throw("not dead anyway, checking, WIP")
-    # We need to define a stopping point. 
-    # Take it from keywords if supplied. 
-    tspan = (0.0, get(odekws, :tstop, 1000))
-    # Early end conditions
-    vccb = [ContinuousCallback(signed_distance_within_domain, affect!),
-            ContinuousCallback(too_flat, affect!)]
-    vdcb = DiscreteCallback[]
-    if :dtfloor ∈ keys(odekws)
-        push!(vdcb, let dtfloor = odekws[:dtfloor]
-                DiscreteCallback(
-                   (u, t, integrator ) -> get_proposed_dt(integrator) ≤ dtfloor, 
-                       affect!)
-            end)
-    end
-    # Flip selected direction callback
-    push!(vdcb, DiscreteCallback(condition_flip_bidirection, affect_flip_bidirection!, save_positions=(true,true)))
-    cbs = CallbackSet(vccb..., vdcb...)
-    # Drop the 'already spent' keywords 'tstop' and 'dtfloor'.
-    # The remaining keywords will be passed on.
-    remaining_kws = filter(odekws) do (kw, kwval)
-        kw == :tstop && return false
-        kw == :dtfloor && return false
-        true
-    end
-    # We're re-using daxy here, for many points. 
-    # Unfortunately, daxy may change during solution of one.
-    # Stil, we don't define as if the state of daxy is part of the initial condition.
-
-    # TODO WIP
-    if isempty(remaining_kws)
-        map(vu0) do u0
-            println("\n u0 = $u0:")
-            println("\n daxy(u0...) = $(daxy(u0...)):")
-            solve_in_xy(u0, tspan, daxy, cbs)
-        end
-    else
-        map(vu0) do u0
-            println("\n u0 = $u0:")
-            solve_in_xy(u0, tspan, daxy, cbs; remaining_kws...)
-        end
-    end
-end
-
-
-function solve_in_xy(u0::Vector{Float64}, tspan, daxy, cbs; odekws...) 
-    prob = ODEProblem(rhs!, u0, tspan, daxy, callback = cbs; odekws...)
-    # Initialization evaluates rhs!
-    integrator = init(prob, Tsit5())
-    solve!(integrator)
-end
-
-
-function solve_ensemble(uxy, vu0, tspan, cbs; odekws...)
+function solve_ensemble(saxy, vu0, tspan, cbs; odekws...)
     u0 = MVector{2, Float64}(first(vu0))
     function prob_func(prob, i, repeat)
         reset!(prob.p)
         u0 = MVector{2, Float64}(vu0[i])
         remake(prob, u0 = u0)
     end
-    prob = ODEProblem(rhs!, u0, tspan, uxy, callback = cbs)
+    prob = ODEProblem(rhs!, u0, tspan, saxy, callback = cbs)
     ensemble_prob = EnsembleProblem(prob, prob_func = prob_func)
     # EnsembleThreads: Early results indicated tests varying between runs.
-    # Change to EnsembleSerial for testing, slows down some.
-    # TEMP 
-    sim = solve(ensemble_prob, Tsit5(), EnsembleSerial(), trajectories = length(vu0); odekws...)
-    sim
+    # We changed to EnsembleSerial. This slows down the calculation.
+    solve(ensemble_prob, Tsit5(), EnsembleSerial(), trajectories = length(vu0); odekws...)
 end
-
-
-# This function takes in the base problem and modifies it to create the new problem that the trajectory actually solves. 
-
 
 ################################################
 # Sample streamlines from continuous to discrete  
@@ -469,10 +307,3 @@ function extract_discrete_points_on_streamline(sol, negy::NegateY, sol_density)
     end
     pts
 end
-
-
-
-
-
-
-

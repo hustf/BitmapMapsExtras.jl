@@ -3,49 +3,49 @@ using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
 using BitmapMapsExtras: paint_curvature_types!, indices_on_grid
 
-!@isdefined(hashstr) && include("common.jl")
+!@isdefined(is_hash_stored) && include("common.jl")
 
 #################################
 # Curvature types, graphical test
 #################################
 
 @testset "Curvature types" begin
+    vhash = ["9f43a178e18d8b504e09743f22d40babfaafd7ea", "b2a5b2e2f59ffefb2bd2e141bd3ac7cbe168cae1", "6d347d6ef8a5258fa49dac50ea9e94ed7087afbe", "2807b28535986e7bbb42584ff73131c032c10aba", "1785a9c9f6c20885b5f92eaad88d34093820dbd0", "c1d2c54b6cedca7ed64977631d3ed45219e35624"]
+    COUNT[] = 0
     z = z_ridge_peak_valleys()
     pts = CartesianIndices(z)
     img = background(z)
     paint_curvature_types!(img, z, pts)
-    @test hashstr(img) == "b11ae5ad33f32bd1761ee647682b6d8ead446d6f"
+    @test is_hash_stored(img, vhash)
 
     # All convex (red)
     r = TestMatrices.r
     z .= z_paraboloid(; a = 0.6r, b = 0.5r)
     img .= background(z)
     paint_curvature_types!(img, z, pts)
-    @test hashstr(img) == "a020b8a5f472f796cfd3fcbefe7e405a2cfd3d9b"
+    @test is_hash_stored(img, vhash)
 
     # All concave  (green)
     z .= z_ellipsoid()
     img .= background(z)
     paint_curvature_types!(img, z, pts)
-    @test hashstr(img) == "8a968074801f2a0619d5c74a66072177be5c0a01"
+    @test is_hash_stored(img, vhash)
 
     # All convex-concave, saddle (blue)
     z .= z_paraboloid(;a= 0.6r, b = -0.4r)
     img .= background(z)
     paint_curvature_types!(img, z, pts)
-    @test hashstr(img) == "081a63c8c3177dd948541a10481372941ce6250f"
-
+    @test is_hash_stored(img, vhash)
 
     # A cylinder. Concave (green).
     z .= z_cylinder(1)
     img .= background(z)
     paint_curvature_types!(img, z, pts)
-    @test hashstr(img) == "89d01a131a2e1bf6e66600850d89b8b2d4ac40c9"
-
+    @test is_hash_stored(img, vhash)
 
     # Lower part of a cylinder. Convex (red)
     z .= -z_cylinder(π / 6)
     img .= background(z)
     paint_curvature_types!(img, z, pts)
-    @test hashstr(img) == "d52953766db89bf022185a0c76ba19d5f7cd0939"
+    @test is_hash_stored(img, vhash)
 end

@@ -1,5 +1,5 @@
 import Pkg
-if ! haskey(Pkg.project().dependencies, "Random") 
+if ! haskey(Pkg.project().dependencies, "SHA") 
     @warn "For interactive tests: Use a test
     environment outside of this package's /src/ and /test/ folder. 
     The interactive test environment should `Pkg|> develop` BitmapMapsExtras, 
@@ -7,7 +7,6 @@ if ! haskey(Pkg.project().dependencies, "Random")
     In VSCode, manually change the environment to that environment folder."
 end
 using Test
-
 
 @testset "BitmapMapsExtras" begin
 @testset "draw direct" begin
@@ -43,16 +42,14 @@ end
     @testset "bidirection types" begin
         include("t_bidirection_types.jl")
     end
-    # 
     @testset "streamlines" begin
-        @test_broken throw("Streamlines tests are currently broken,
-           because they rely on a deprecated API in tests/common.jl")
-        #include("t_streamlines.jl")
+        include("t_streamlines.jl")
     end
     @testset "streamlines curvature" begin
-        @test_broken throw("Streamlines tests are currently broken,
-           because they rely on a deprecated API in tests/common.jl")
-        #include("t_streamlines_curvature.jl")
+        include("t_streamlines_curvature.jl")
     end
+end
+@testset "graphical specification types" begin
+    include("t_specification_types.jl")
 end
 end

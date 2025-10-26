@@ -1,6 +1,8 @@
 module BitmapMapsExtras
+import Base
+import Base: size
 import BitmapMaps
-using BitmapMaps: scaleminmax00, line!, display_if_vscode, open_as_temp_in_imgedit
+using BitmapMaps: line!, display_if_vscode
 import ImageFiltering
 import ImageFiltering.Kernel
 import ImageCore
@@ -20,6 +22,8 @@ import OffsetArrays
 using OffsetArrays: OffsetMatrix
 import Random
 using Random: MersenneTwister, randperm
+import Unicode
+using Unicode: graphemes
 
 # For streamlines
 import OrdinaryDiffEq
@@ -97,7 +101,7 @@ const D2  = 0x02
 "Bitwise: Specifies whether direction 1 and / or 2 are to be shown"
 const D12 = D1 | D2
 
-include("Test_matrices.jl")
+
 include("differential_geom/tangent_basis.jl")
 include("differential_geom/curvature.jl")
 include("differential_geom/bidirectional_quantity.jl")
@@ -106,7 +110,7 @@ include("type_definitions/show.jl")
 include("type_definitions/domain_types.jl")
 include("type_definitions/direction_types.jl")
 include("type_definitions/bidirection_types.jl")
-include("type_definitions/glyphspec_types.jl")
+include("type_definitions/specification_types.jl")
 include("visualization/draw_plane.jl")
 include("visualization/plot_glyph_given_value.jl")
 include("visualization/pack_glyphs.jl")
@@ -116,8 +120,14 @@ include("visualization/calculate_and_paint_curvature_type.jl")
 include("visualization/default_ij_functor.jl")
 include("visualization/glyph_indices.jl")
 include("tensormap_functions.jl")
+include("Test_matrices.jl")
+
 # Function aliases
 const 𝐊 = principal_curvature_components
 const 𝐊! = principal_curvature_components!
+const 𝐊ᵤ! = principal_curvature_normalized!
+const 𝐧ₚ = descent
+const 𝐧ₚ! = descent!
+const 𝐧ₚᵤ! = descent_unit!
 
 end

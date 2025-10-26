@@ -131,3 +131,18 @@ Combine code `dot_product_with....`
     n1 == 0 || n2 == 0 ? false : abs(d) < 0.2 * sqrt(n1 * n2)
 end
 
+
+"""
+    normalize_or_zero!(v)
+
+Alternative to `normalize!` for those times when you want to make exceptions for zero.
+"""
+function normalize_or_zero!(v)
+    mag = norm(v)
+    if mag < MAG_EPS
+        v .= 0.0
+    else
+        v ./= mag
+    end
+    v
+end

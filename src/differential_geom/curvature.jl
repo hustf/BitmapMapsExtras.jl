@@ -27,12 +27,15 @@ end
 """
     principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ, lpc)
 
-M is the 5x5 input
-vϕ are sample angles, normally the optimized values VΦ.
+Alias: 𝐊!.
 
-K, vα, vβ, vκ and P are pre-allocated.
-
-Note that there is an alias 𝐊! for brevity.
+- `K` is the result value (a 2x2 TENSORMAP), updated in place.
+- `M` is a 5x5 window centered on the current evaluation element. 
+- `vϕ` are sample angles, normally the optimized values VΦ.
+- `vα`, `vβ`, `vκ` and `P` are buffers for intermediate calculations. 
+  These will also be mutated. 
+  
+Use `allocations_curvature` for generating all the arguments in one go.
 """
 function principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ, lpc)
     _, κ1, κ2 = principal_curvatures_and_angles!(vβ, vα, vκ, P, M, vϕ, lpc)
@@ -40,6 +43,25 @@ function principal_curvature_components!(K, vα, vβ, vκ, P, M, vϕ, lpc)
     # K is a second-order tensor's components in a screen-aligned basis.
     components_matrix!(K, κ1, κ2, vβ)
 end
+
+"""
+    principal_curvature_normalized!(Kᵤ, vα, vβ, vκ, P, M, vϕ, lpc)
+
+Alias: Kᵤ!.
+
+See `principal_curvature_components!` 
+
+Both directions are normalized to length 1, or set to zero when below a threshold. The sign
+remains unchanged.
+"""
+function principal_curvature_normalized!(Kᵤ, vα, vβ, vκ, P, M, vϕ, lpc)
+    principal_curvature_components!(Kᵤ, vα, vβ, vκ, P, M, vϕ, lpc)
+    normalize_or_zero!(view(Kᵤ, :, 1))
+    normalize_or_zero!(view(Kᵤ, :, 2))
+    Kᵤ
+end
+
+
 
 """
     principal_curvatures_and_angles!(vβ, vα, vκ, P, M, vϕ, lpc)

@@ -1,192 +1,193 @@
 using Test
 using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
-using BitmapMapsExtras.TestMatrices: I0
-using BitmapMapsExtras: plot_bidirec_streamlines!, principal_curvature_components
-using BitmapMapsExtras: 𝐊! #, DirectionAtXY, is_bidirec_vect_positive, norm
-using BitmapMapsExtras: PALETTE_GRGB, get_bidirec_streamlines_points
+using BitmapMapsExtras: plot_streamlines!, 𝐊!, 𝐊ᵤ!, Stroke, indices_on_grid
+using BitmapMapsExtras: SelectedVec2AtXY
+using BitmapMapsExtras: PALETTE_GRGB
 import BitmapMaps
-using BitmapMaps: mark_at!
-
-!@isdefined(hashstr) && include("common.jl")
-
-
-@test true
-
-# WIP BROKEN (dropping the temporary interface in test/common.jl)
-#@testset "Streamlines normal projected" begin
-r = TestMatrices.r
-pts = [CartesianIndex(300, 450),
-      CartesianIndex(300, 475),
-      CartesianIndex(300, 500)]
-args = ((𝐊!, true, true), (;rgb = PALETTE_GRGB[4], r = 5f0, dtmax = 1, tstop = 1900))
-img = fcall_with_background(plot_bidirec_streamlines!, args, z_ellipsoid(; tilt = -π / 5 ), pts)
-mark_at!(img, pts, 9, "in_circle")
-
-# Maybe we ought to have a stop criterion at too large steepness
-args = ((𝐊!, false, true), (;rgb = PALETTE_GRGB[4], r = 5f0, dtmax = 1, tstop = 1900))
-img = fcall_with_background(plot_bidirec_streamlines!, args, z_ellipsoid(; tilt = -π / 5 ), pts)
-mark_at!(img, pts, 9, "in_circle")
-
-args = ((𝐊!, true, false), (;rgb = PALETTE_GRGB[4], r = 5f0, dtmax = 1, tstop = 1900))
-img = fcall_with_background(plot_bidirec_streamlines!, args, z_ellipsoid(; tilt = -π / 3 ), pts)
-mark_at!(img, pts, 9, "in_circle")
+using BitmapMaps: mark_at!, divergence_of_gradients, display_if_vscode
+import StatsBase
+using StatsBase: Weights, sample
+import Random
+using Random: MersenneTwister
 
 
-pts = [CartesianIndex(200, 450),
-      CartesianIndex(220, 475),
-      CartesianIndex(240, 500)]
-args = ((𝐊!, false, false), (;rgb = PALETTE_GRGB[4], r = 5f0, dtmax = 1, tstop = 1550))
-img = fcall_with_background(plot_bidirec_streamlines!, args, z_cos(), pts)
-mark_at!(img, pts, 9, "in_circle")
+!@isdefined(is_hash_stored) && include("common.jl")
 
-# Narrow down debug turn
-pts = [CartesianIndex(220, 235)]
-args = ((𝐊!, false, false), (;rgb = PALETTE_GRGB[4], r = 1f0, dtmax = 0.1, tstop = 100))
-img = fcall_with_background(plot_bidirec_streamlines!, args, z_cos(), pts)
-mark_at!(img, pts, 9, "in_circle")
-
-
-
-
-
-
-
-background(z_cos())
-extrema(z_paraboloid(;a= 5r, b=-5r))
-
-
-
-# Second run.
-# 1.200752 seconds (3.45 M allocations: 1.399 GiB, 58.50% gc time)
-# 0.940869 seconds (2.50 M allocations: 1.322 GiB, 50.24% gc time)
-# 1.092556 seconds (2.23 M allocations: 1.310 GiB, 58.66% gc time)
-# 0.790105 seconds (1.89 M allocations: 1.294 GiB, 41.84% gc time)
-# 0.748579 seconds (1.67 M allocations: 1.286 GiB, 42.00% gc time)
-@time let 
-    # This format is pretty complicated, but also powerful. 
-    vargs = [((𝐊!, false, true),  (rgb = PALETTE_GRGB[3], r = 3f0, strength = 0.4f0)),
-            ((𝐊!, false, false), (rgb = PALETTE_GRGB[4], r = 2f0, strength = 0.4f0))]
-    grid_fcall_with_background(plot_bidirec_streamlines!, vargs; Δ = 100, offset = (-30, -30))
-end
-
-# dtmax fixes errors where a trace loops back
-# 0.888065 seconds (9.56 M allocations: 1.749 GiB, 60.76% gc time, 1 lock conflict)
-# 3.064361 seconds (18.86 M allocations: 1.600 GiB, 20.63% gc time)
-# 2.845686 seconds (13.12 M allocations: 1.343 GiB, 22.42% gc time)
-# 2.225794 seconds (6.15 M allocations: 1.031 GiB, 20.39% gc time)
-# 2.143907 seconds (1.64 M allocations: 855.565 MiB, 23.44% gc time)
-@time let 
-    vargs = [((𝐊!, false, true),  (rgb = PALETTE_GRGB[3], r = 1.5f0, strength = 0.4f0, dtmax = 1)),
-            ((𝐊!, false, false), (rgb = PALETTE_GRGB[4], r = 1.5f0, strength = 0.4f0, dtmax = 1)), 
-            ((𝐊!, true, true),  (rgb = PALETTE_GRGB[1], r = 1.5f0, strength = 0.4f0, dtmax = 1)),
-            ((𝐊!, true, false), (rgb = PALETTE_GRGB[2], r = 1.0f0, strength = 0.4f0, dtmax = 1))]
-    grid_fcall_with_background(plot_bidirec_streamlines!, vargs; Δ = 200)
+@testset "Streamlines, 𝐊ᵤ! versus less graphically useful 𝐊!" begin
+    vhash = ["1bc542fd14604a6242058ed4b79807e8c5ece082", "e66a13d3828fb1ee9c5ba86dde93e6d418ec7535"]
+    COUNT[] = 0
+    saxy = SelectedVec2AtXY(𝐊!, z_cylinder(π / 6), false, true);
+    img = background(saxy)
+    pts = indices_on_grid(saxy; Δ = 300)
+    mark_at!(img, pts, 5, "in_circle")
+    # With non-normalized curvature, 𝐊!, the values du / dt are very small.
+    # At time step 1.0, the streamline integration may not have left the initial pixel.
+    # That's just a lot of sub-pixel interpolation and extremely in-effective.
+    plot_streamlines!(img, saxy, pts; stroke = Stroke(color = PALETTE_GRGB[2]), tstop = 1000000)
+    @test is_hash_stored(img, vhash)
+    # Normalized curvature. The downside is that we can't get an integrated value of curvature, i.e.
+    # local inclination, which might be useful for checks but not for finding the streamline.
+    saxy = SelectedVec2AtXY(𝐊ᵤ!, z_cylinder(π / 6), false, true);
+    img = background(saxy)
+    mark_at!(img, pts, 5, "in_circle")
+    plot_streamlines!(img, saxy, pts; stroke = Stroke(color = PALETTE_GRGB[2]), dtmax = 1)
+    @test is_hash_stored(img, vhash)
 end
 
 
-let 
-    vargs = [((𝐊!, false, true),  (rgb = PALETTE_GRGB[3], r = 3f0, strength = 0.4f0)),
-            ((𝐊!, false, false), (rgb = PALETTE_GRGB[4], r = 2f0, strength = 0.4f0))]
-    grid_fcall_with_background(plot_bidirec_streamlines!, vargs; Δ = 100, offset = (-30, -30), z = z_cylinder(π / 6))
-end
 
-# dtmax fixes undulating traces
-let 
-    vargs = [((𝐊!, false, true),  (rgb = PALETTE_GRGB[3], r = 3f0, strength = 0.4f0, dtmax = 1)),
-            ((𝐊!, false, false), (rgb = PALETTE_GRGB[4], r = 2f0, strength = 0.4f0, dtmax = 1))]
-    grid_fcall_with_background(plot_bidirec_streamlines!, vargs; Δ = 100, offset = (-30, -30), z = z_cylinder(π / 6))
-end
-
-
-let 
-    vargs = [((𝐊!, false, true),  (rgb = PALETTE_GRGB[3], r = 1f0, strength = 0.4f0, dtmax = 1)),
-            ((𝐊!, false, false), (rgb = PALETTE_GRGB[4], r = 1f0, strength = 0.4f0, dtmax = 1)), 
-            ((𝐊!, true, true),  (rgb = PALETTE_GRGB[1], r = 1f0, strength = 0.4f0, dtmax = 1)),
-            ((𝐊!, true, false), (rgb = PALETTE_GRGB[2], r = 0.6f0, strength = 0.4f0, dtmax = 1))]
-    grid_fcall_with_background(plot_bidirec_streamlines!, vargs, z = z_ellipsoid())
-end
-
-let 
-    vargs = [((𝐊!, false, true),  (rgb = PALETTE_GRGB[3], r = 1f0, strength = 0.4f0, dtmax = 1)),
-            ((𝐊!, false, false), (rgb = PALETTE_GRGB[4], r = 1f0, strength = 0.4f0, dtmax = 1)), 
-            ((𝐊!, true, true),  (rgb = PALETTE_GRGB[1], r = 1f0, strength = 0.4f0, dtmax = 1)),
-            ((𝐊!, true, false), (rgb = PALETTE_GRGB[2], r = 0.6f0, strength = 0.4f0, dtmax = 1))]
-    grid_fcall_with_background(plot_bidirec_streamlines!, vargs; Δ = 100, offset = (-30, -30), z = z_paraboloid())
+@testset "Solution keyword example" begin
+    vhash = vhash = ["d625d4caa33ddbef09c51072d2f3a05df38b1956", "32ad175e9c45dfce5afbafbe5a35d8467984d6c1", "8a15a49dad200fda49df737f6aed40017a849a49"]
+    COUNT[] = 0
+    saxy = SelectedVec2AtXY(𝐊ᵤ!, z_ellipsoid(), true, true)
+    pts = indices_on_grid(saxy)
+    img = background(saxy)
+    mark_at!(img, pts)
+    # This takes too long strides and follow the wrong track
+    plot_streamlines!(img, saxy, pts)
+    @test is_hash_stored(img, vhash)
+    #
+    img = background(saxy)
+    mark_at!(img, pts)
+    # Persistent
+    plot_streamlines!(img, saxy, pts; dtmax = 1.0)
+    @test is_hash_stored(img, vhash)
+    #
+    # Secondary direction:
+    saxy = SelectedVec2AtXY(𝐊ᵤ!, z_ellipsoid(), false, true)
+    # Also persistent
+    plot_streamlines!(img, saxy, pts; dtmax = 1, stroke = Stroke(color = PALETTE_GRGB[3]))
+    @test is_hash_stored(img, vhash)
 end
 
 
-# This encounters switch primary <-> secondary
-let 
-    vargs = [((𝐊!, false, true),  (rgb = PALETTE_GRGB[3], r = 3f0, strength = 0.4f0, dtmax = 1, tstop = 3000))]
-    grid_fcall_with_background(plot_bidirec_streamlines!, vargs; Δ = 1500, offset = (-20, -20), z = z_ridge_peak_valleys())
-end
-
-end
-#=
-# DEV Allocs
-using BitmapMapsExtras: UnidirectionAtXY, vu0_from_pts, make_tspan, callbacks_streamlines, MVector, ODEProblem, rhs!, update_corners!, VΦ
-using BenchmarkTools
-
-f = 𝐊!
-primary = true
-flip = false
-z = z_cylinder(0)
-uxy = UnidirectionAtXY(f, z, primary, flip)
-
-
-@inferred uxy(30.4, 50.2)
-# 3.375 μs (12 allocations: 560 bytes)
-# 3.400 μs (12 allocations: 496 bytes)
-# 3.350 μs (10 allocations: 400 bytes)
-# 3.388 μs (10 allocations: 400 bytes)
-# 3.388 μs (9 allocations: 352 bytes)
-# 3.350 μs (8 allocations: 320 bytes)
-# 3.650 μs (19 allocations: 608 bytes) # Change from using update_corners
-# 3.625 μs (15 allocations: 352 bytes) # Parametric type also for lpc
-# 3.175 μs (2 allocations: 32 bytes)   # use parameters in BidirectionInDomain
-# 3.075 μs (0 allocations: 0 bytes)    # use parameters in UniDirectionAtXy
-@btime uxy(30.4, 50.2)
-
-# 3.450 μs (11 allocations: 624 bytes)
-# 3.375 μs (10 allocations: 608 bytes)
-# 3.737 μs (21 allocations: 896 bytes) # Change from using update_corners
-# 3.675 μs (17 allocations: 640 bytes)
-# 3.225 μs (4 allocations: 240 bytes)   # use parameters in BidirectionInDomain
-# 3.138 μs (1 allocation: 48 bytes)     # use parameters in BidirectionAtXy
-@btime uxy.baxy(30.4, 50.2)
-baxy = uxy.baxy
-# 3.625 μs (19 allocations: 608 bytes) # Change from using update_corners
-# 3.612 μs (15 allocations: 352 bytes)
-# 3.112 μs (2 allocations: 32 bytes)
-# 3.075 μs (0 allocations: 0 bytes) # use parameters in BidirectionAtXy
-@btime baxy(30.4, 50.2)
-
-
-bid = uxy.baxy.bid # BidirectionInDomain
-# 3.525 μs (11 allocations: 288 bytes)
-# 3.100 μs (0 allocations: 0 bytes) # use parameters in BidirectionInDomain
-# 3.038 μs (0 allocations: 0 bytes) # re-introduce column swapping
-@btime bid(30.4, 50.2)
-
-
-
-function pro()
-    for i = 0:10e4
-        uxy(30.4, 50.2)
+@testset "Streamlines starting on grid" begin
+    vhash = vhash = ["2edf25f7b1ec183135c03f7fb466f049e5a1c901", "6c435eeba7681eee0244ad9133106b5061e30c86", "db78a7768bd8f5cd0f7844c4cd1f4fa2eada6569", "9c5d765f3654873d7f3c775059cf644f72df05bd", "0310688a14af0a61b2b51525a6a7b14f36f96038", "2ee096ed3b6d37f7541ee38dd1e7f0c743d79046", "3e9a898ee60b93de1c28199c17c64c7cff100791", "68d793cfe9056c56c6881903a4ffe89b211ea071"]
+    COUNT[] = 0
+    vzf = [z_cos,
+        () -> z_cylinder(π / 6),
+        () -> z_cylinder_offset(π / 3),
+        z_ellipsoid,
+        z_exp3,
+        z_paraboloid,
+        z_ridge_peak_valleys,
+        z_sphere]
+    for fz in vzf
+        saxy = SelectedVec2AtXY(𝐊ᵤ!, fz(), true, true);
+        pts = indices_on_grid(saxy)
+        img = background(saxy)
+        # dtmax = 1.0 is 'always' a good idea.
+        plot_streamlines!(img, saxy, pts; dtmax = 1.0)
+        @test is_hash_stored(img, vhash)
     end
 end
-@profview_allocs pro()
 
 
-pt = (100, 110)
-uxy.baxy.bid.bdog(pt...)
+@testset "Symmetric directions with different appearance" begin
+    vhash = ["aa6b1645bea451b53748dc8cd1c9f7e044347b67"]
+    COUNT[] = 0
+    # Short streamlines from grid points. The direction is the first,
+    # which is systematic although hard to predict
+    saxy = SelectedVec2AtXY(𝐊ᵤ!, z_ridge_peak_valleys(), true, true)
+    pts = indices_on_grid(saxy; Δ = 50)
+    img = background(saxy; α = 0.4)
+    plot_streamlines!(img, saxy, pts; dtmax = 5, tstop = 50)
+    mark_at!(img, pts, 5, "in_circle")
+    # Short streamlines from grid points. The direction is the second of two.
+    saxy = SelectedVec2AtXY(𝐊ᵤ!, z_ridge_peak_valleys(), true, false)
+    stroke = Stroke(color = PALETTE_GRGB[3])
+    plot_streamlines!(img, saxy, pts; dtmax = 5, tstop = 50, stroke)
+    @test is_hash_stored(img, vhash)
+end
 
-# 1.010 μs (6 allocations: 528 bytes)
-# 990.000 ns (6 allocations: 608 bytes)
-@btime uxy.baxy.bid.bdog(100, 110)
-bdog = uxy.baxy.bid.bdog
-# 759.322 ns (0 allocations: 0 bytes)
-@btime bdog(100, 110)
+@testset "Many streamlines in both directions from grid points" begin
+    vhash = ["6e95bc2a7aa7bb9e30c8cfede7ee989baeeeb847", "3bf202c19c808e5f7095fa2cb7b96b0d5abe853b"]
+    COUNT[] = 0
+    stroke = Stroke(strength = 0.05)
+    tstop = 2000 # default is 1000
+    dtmax = 1
+    # Primary curvature direction. There's a tendency in where they collect,
+    # but the tendency is masked by the regular grid
+    saxy = SelectedVec2AtXY(𝐊ᵤ!, z_ridge_peak_valleys(), true, true)
+    pts = indices_on_grid(saxy, Δ = 50) # 361
+    img = background(saxy; α = 0.4)
+    #mark_at!(img, pts)
+    plot_streamlines!(img, saxy, pts; dtmax, tstop, stroke)
+    saxy = SelectedVec2AtXY(𝐊ᵤ!, z_ridge_peak_valleys(), true, false)
+    plot_streamlines!(img, saxy, pts; dtmax, tstop, stroke)
+    @test is_hash_stored(img, vhash)
+    #
+    # Primary curvature direction. There's an other tendency in where they collect,
+    # but the tendency is masked by the regular grid
+    saxy = SelectedVec2AtXY(𝐊ᵤ!, z_ridge_peak_valleys(), false, true)
+    img = background(saxy; α = 0.4)
+    #mark_at!(img, pts)
+    plot_streamlines!(img, saxy, pts; dtmax, tstop, stroke)
+    saxy = SelectedVec2AtXY(𝐊ᵤ!, z_ridge_peak_valleys(), false, false)
+    plot_streamlines!(img, saxy, pts;  dtmax, tstop, stroke)
+    @test is_hash_stored(img, vhash)
+end
 
+@testset "Streamlines without grid" begin
+    vhash = ["231407335af6fa8f3aa37d9c32d7a402c116b59f", "3d28e7a94e0c419462b9d48ef83d22cc17cafa43"]
+    COUNT[] = 0
+    stroke = Stroke(strength = 0.05)
+    tstop = 2000 # default is 1000
+    dtmax = 1
+    z = z_ridge_peak_valleys()
+    # Uniform random distribution
+    n = 361
+    pts = sample(MersenneTwister(124), CartesianIndices(z), n)
+    # Primary curvature. Tends to
+    # aggregate on ridges
+    img = background(z; α = 0.4)
+    plot_streamlines!(img, SelectedVec2AtXY(𝐊ᵤ!, z, true, true), pts; dtmax, tstop, stroke)
+    plot_streamlines!(img, SelectedVec2AtXY(𝐊ᵤ!, z, true, false), pts; dtmax, tstop, stroke)
+    @test is_hash_stored(img, vhash)
+    # Secondary curvature. These do NOT aggregate on ridges,
+    # but seems to identify lines of no curvature, as well as valley bottoms
+    img = background(z; α = 0.4)
+    plot_streamlines!(img, SelectedVec2AtXY(𝐊ᵤ!, z, false, true), pts; dtmax, tstop, stroke)
+    plot_streamlines!(img, SelectedVec2AtXY(𝐊ᵤ!, z, false, false), pts; dtmax, tstop, stroke)
+    @test is_hash_stored(img, vhash)
+end
+
+
+
+
+
+#=
+    # Originating at points where z > 0
+    seed_dens = clamp.(z, 0.0, 1.0);
+    display_if_vscode(background(seed_dens))
+    n = 1000
+    pts = sample(MersenneTwister(123), CartesianIndices(seed_dens), Weights(vec(seed_dens)), n);
+    saxy = SelectedVec2AtXY(𝐊ᵤ!, z, true, true)
+    stroke = Stroke(color = PALETTE_GRGB[3], r = 1, strength = 0.3)
+    img = background(z)
+    mark_at!(img, pts)
+    plot_streamlines!(img, saxy, pts; dtmax = 1, stroke)
+    saxy = SelectedVec2AtXY(𝐊ᵤ!, z, true, false)
+    plot_streamlines!(img, saxy, pts; dtmax = 1, stroke)
+    display_if_vscode(img)
+    @test is_hash_stored(img, vhash)
+    #
+    # Originating at 'sources' (convex terrain)
+    vals1 = divergence_of_gradients(-z_ridge_peak_valleys())
+    background(vals1)
+    vals2 = clamp.(vals1, 0.003, 1.0) .- 0.003
+    seed_dens = clamp.(vals2 .* 100, 0, 1.0)
+    # Drop the extreme area near the centre.
+    seed_dens[400:600, 300:700] .= 0.0
+    background(seed_dens)
+    n = 1000
+    pts = sample(MersenneTwister(123), CartesianIndices(seed_dens), Weights(vec(seed_dens)), n);
+    img = background(z)
+    mark_at!(img, pts)
+    display_if_vscode(img)
+    plot_streamlines!(img, saxy, pts; dtmax = 1)
+    display_if_vscode(img)
+    @test is_hash_stored(img, vhash)
+end
 =#

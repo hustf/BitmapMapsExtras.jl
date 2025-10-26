@@ -3,4 +3,4 @@
 
 default_ij_functor(z, gs::AbstractGlyphSpec) = throw(ArgumentError("No default functor for $gs"))
 default_ij_functor(z, gs::GSTensor) = BidirectionOnGrid(𝐊!, z)
-default_ij_functor(z, gs::GSVector) = DirectionOnGrid(𝐧ₚ!, z)
+default_ij_functor(z, gs::GSVector) = Vec2OnGrid(𝐧ₚ!, z)

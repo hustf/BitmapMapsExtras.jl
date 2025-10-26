@@ -1,41 +1,43 @@
 # For testing graphically
 # 
-import BitmapMapsExtras.BitmapMaps
-using BitmapMapsExtras.BitmapMaps: scaleminmax, RGBA, N0f8
-using BitmapMapsExtras:  PALETTE_BACKGROUND, RGB, AbstractGlyphSpec
-import BitmapMapsExtras.TestMatrices
 using SHA # Test dependency, temporarily added as a direct dependency.
-import Random
-using Random: MersenneTwister
+using BitmapMaps: channelview, display_if_vscode, RGB, RGBA, N0f8
 
-function hashstr(img)
-    iob = IOBuffer()
-    show(iob, img)
-    bytes2hex(sha1(take!(iob)))
+function hash_image(img)
+    io = IOBuffer()
+    # Record minimal metadata
+    write(io, UInt64(ndims(img)))
+    foreach(s -> write(io, UInt64(s)), size(img))
+    Tstr = string(eltype(img))
+    write(io, UInt64(sizeof(codeunits(Tstr))))
+    write(io, codeunits(Tstr))
+    # Record pixel bytes in a deterministic order
+    A = channelview(img)                    # (channels, H, W) or (channels, …)
+    write(io, reinterpret(UInt8, vec(A)))   # linearized, column-major
+    bytes2hex(sha1(take!(io)))
 end
 
-# TODO move this into TestMatrices. And make that a separate package?
-function background(z; α = 1.0)
-    foo = scaleminmax(extrema(z)...)
-    scaled_z = foo.(z)
-    img = map(scaled_z) do z
-        RGBA{N0f8}(get(PALETTE_BACKGROUND, z), α)
-    end
-    # Add simple contour lines, too
-    Δc = -(-(extrema(z)...)) / 10 # elevation spacing
-    wc = Δc / 10         # 'width' of contour lines, in height....
-    map!(img, z, img) do zz, pix
-        mod(zz, Δc) < wc ? RGBA{N0f8}(0.1, 0.1, 0.1, 1.0) : pix 
-    end
-end
+const COUNT = Ref(0)
+(::typeof(COUNT))() = COUNT[] += 1
 
-
-# TODO move this into TestMatrices. And make that a separate package?
-"""
-    pack_glyphs_with_background(z::Matrix{<:AbstractFloat}, gs::AbstractGlyphSpec; scatterdist = 3.0, seed = MersenneTwister(123))
-"""
-function pack_glyphs_with_background(z::Matrix{<:AbstractFloat}, gs::AbstractGlyphSpec; scatterdist = 3.0, seed = MersenneTwister(123))
-    img = background(z)
-    pack_glyphs!(img, z, gs; scatterdist, seed)
+function is_hash_stored(img, vhash)
+    if eltype(img) <: Union{RGBA{N0f8}, RGB{N0f8}, RGB{Float32}, RGBA{Float32}}
+        display_if_vscode(img)
+    end
+    if isempty(vhash) || (length(vhash) < COUNT[])
+        push!(vhash, hash_image(img))
+        # This is for pasting into the test criterion, for later
+        # (provided that the output IS ok!)
+        s = "vhash = " * string(vhash)
+        printstyled("\n " * s * "\n", color = :176)
+        clipboard(s)
+        # This ensures the rest of the tests in this set branch here, too.
+        # Updating the test results is quick, with one paste operation per testset.
+        COUNT(); COUNT()
+        return false
+    else
+        i = COUNT() # Increases COUNT[]
+        return hash_image(img) == vhash[i]
+    end
 end
 nothing
