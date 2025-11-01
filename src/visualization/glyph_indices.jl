@@ -30,7 +30,7 @@ indices_on_grid(fxy; Δ = 100, offset = (0, 0)) = indices_on_grid(size(fxy); Δ,
 """
     indices_scattered(R::CartesianIndices; scatterdist = 3.0, seed = MersenneTwister(123))
     --> Vector{CartesianIndex}
-    indices_scattered(fz::AbstractIJFunctor; scatterdist = 3.0, seed = MersenneTwister(123))
+    indices_scattered(fij::AbstractIJFunctor; scatterdist = 3.0, seed = MersenneTwister(123))
     indices_scattered(z::Matrix{<:AbstractFloat}, gs::GSTangentBasis;
          scatterdist = 3.0, seed = MersenneTwister(123))
 
@@ -52,11 +52,11 @@ function indices_scattered(R::CartesianIndices; scatterdist = 3.0, seed = Mersen
     chosen = randperm(seed, area)[1:n]
     [R[i] for i in chosen]
 end
-function indices_scattered(fz::AbstractIJFunctor;
+function indices_scattered(fij::AbstractIJFunctor;
      scatterdist = 3.0, seed = MersenneTwister(123))
     #
-    R = CartesianIndices(fz.z)
-    Ω = fz.Ω
+    R = CartesianIndices(fij.z)
+    Ω = fij.Ω
     minj = R[1][2] - Ω[1][2]
     maxi = R[end][1] - Ω[end][2]
     maxj = R[end][2] - Ω[end][2]

@@ -4,6 +4,7 @@
 ##################
 # Plot streamlines
 ##################
+
 """
     plot_streamlines(fxy::AbstractXYFunctor, pts; 
         stroke = Stroke(), odekws...)
@@ -30,9 +31,6 @@ julia> img = plot_streamlines!(img, vaxy, pts; stroke = Stroke(color = PALETTE_G
 ```
 
 # Example, 2d vector selected from tensor map
-
-
-
 """
 function plot_streamlines(fxy::AbstractXYFunctor, pts; 
         stroke = Stroke(), odekws...)
@@ -70,10 +68,9 @@ function plot_streamlines!(cov::Array{Float32}, fxy::AbstractXYFunctor, pts;
     # Indexed points on the streamlines
     spts = get_streamlines_points(fxy, pts, stroke.tdensity; odekws...)
     # Plot points
-    draw_streamlines_points!(cov, spts, stroke.r, stroke.strength)
+    spray_along_nested_indices!(cov, spts, stroke.r, stroke.strength)
     cov
 end
-
 
 ############################
 # Callees for OrdinaryDiffEq

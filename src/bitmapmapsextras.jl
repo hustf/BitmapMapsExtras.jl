@@ -1,8 +1,11 @@
 module BitmapMapsExtras
 import Base
 import Base: size
-import BitmapMaps
-using BitmapMaps: line!, display_if_vscode
+import DrawAndSpray
+using DrawAndSpray: line!, spray_along_nested_indices!, draw_bidirectional_vector!
+using DrawAndSpray: is_bidirec_vect_positive, spray!, display_if_vscode
+using DrawAndSpray: draw_vector!, apply_color_by_any_coverage!, mark_at!
+import DrawAndSpray: apply_color_by_coverage!
 import ImageFiltering
 import ImageFiltering.Kernel
 import ImageCore
@@ -14,8 +17,6 @@ using LinearAlgebra: ⋅, norm, normalize!
 import LinearSolve
 using LinearSolve: init, LinearProblem, solve!, NormalCholeskyFactorization
 using LinearSolve: OperatorCondition, OperatorAssumptions, LinearCache
-import ColorBlendModes
-using ColorBlendModes: BlendMode, BlendLighten, BlendHue, blend
 import ColorSchemes
 using ColorSchemes: ColorScheme
 import OffsetArrays
@@ -105,7 +106,6 @@ const D12 = D1 | D2
 include("differential_geom/tangent_basis.jl")
 include("differential_geom/curvature.jl")
 include("differential_geom/bidirectional_quantity.jl")
-include("visualization/draw_direct.jl")
 include("type_definitions/show.jl")
 include("type_definitions/domain_types.jl")
 include("type_definitions/direction_types.jl")

@@ -470,15 +470,15 @@ end
 
 
 """
-    placements_and_values(b::AbstractIJFunctor, gs::AbstractGlyphSpec, ppts)
-    --> (Vector{CartesianIndex{2}}, Vector{typeof(b(first(ppts).I...)))}
+    placements_and_values(fij::AbstractIJFunctor, gs::AbstractGlyphSpec, ppts)
+    --> (Vector{CartesianIndex{2}}, Vector{typeof(fij(first(ppts).I...)))}
 
-Given a functor `b` and a glyph spec `gs`, select a subset of `ppts`. These are 
+Given a functor `fij` and a glyph spec `gs`, select a subset of `ppts`. These are 
 placements for non-overlapping glyphs.
 """
-function placements_and_values(b::AbstractIJFunctor, gs::AbstractGlyphSpec, ppts)
+function placements_and_values(fij::AbstractIJFunctor, gs::AbstractGlyphSpec, ppts)
     passed_placements = CartesianIndex{2}[]
-    valtyp = typeof(b(first(ppts).I...))
+    valtyp = typeof(fij(first(ppts).I...))
     # Could be a vector of vectors, or a vector of TENSORMAP
     passed_values = Vector{valtyp}()
     passed_radii = Float64[]
@@ -486,7 +486,7 @@ function placements_and_values(b::AbstractIJFunctor, gs::AbstractGlyphSpec, ppts
     while !isempty(se)
         # Set current point, drop it from the set.
         pt = pop!(se)
-        value = b(pt.I...)
+        value = fij(pt.I...)
         r = coarse_radius_for_plotting(gs, value)
         if r > MAG_EPS
             if isempty(passed_placements)
@@ -538,13 +538,13 @@ end
 
 
 """
-    pack_glyphs!(img, b::AbstractIJFunctor, gs::AbstractGlyphSpec; scatterdist = 3.0, seed = MersenneTwister(123))
+    pack_glyphs!(img, fij::AbstractIJFunctor, gs::AbstractGlyphSpec; scatterdist = 3.0, seed = MersenneTwister(123))
     pack_glyphs!(img, z::Matrix{<:AbstractFloat}, gs::GSTangentBasis; scatterdist = 3.0, seed = MersenneTwister(123))
     pack_glyphs!(img, z::Matrix{<:AbstractFloat}, gs::AbstractGlyphSpec; scatterdist = 3.0, seed = MersenneTwister(123))
 """
-function pack_glyphs!(img, b::AbstractIJFunctor, gs::AbstractGlyphSpec; scatterdist = 3.0, seed = MersenneTwister(123))
-    ppts = indices_scattered(b; scatterdist, seed)
-    filtered_placements, filtered_values = placements_and_values(b, gs, ppts)
+function pack_glyphs!(img, fij::AbstractIJFunctor, gs::AbstractGlyphSpec; scatterdist = 3.0, seed = MersenneTwister(123))
+    ppts = indices_scattered(fij; scatterdist, seed)
+    filtered_placements, filtered_values = placements_and_values(fij, gs, ppts)
     plot_glyphs_given_values!(img, filtered_placements, filtered_values, gs)
     img
 end

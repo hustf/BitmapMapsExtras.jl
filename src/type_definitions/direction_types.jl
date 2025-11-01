@@ -154,4 +154,4 @@ z_matrix(fxy::AbstractXYFunctor) = fxy.did.vog.z
 z_matrix(fij::AbstractIJFunctor) = fij.z
 
 size(fxy::AbstractXYFunctor) = size(z_matrix(fxy))
-size(fxy::AbstractIJFunctor) = size(z_matrix(fxy))
+size(fij::AbstractIJFunctor) = size(z_matrix(fij))

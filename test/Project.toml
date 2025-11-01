@@ -1,7 +1,7 @@
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-BitmapMaps = "dcf5437e-85d8-460a-98f8-69920db83c61"
 ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
+DrawAndSpray = "80de0461-81d9-4176-ac57-184d3ad6c8ef"
 ImageContrastAdjustment = "f332f351-ec65-5f6a-b3d1-319c6670881a"
 ImageCore = "a09fc81d-aa75-5fe9-8630-4744c3626534"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
@@ -10,4 +10,3 @@ RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
 SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"

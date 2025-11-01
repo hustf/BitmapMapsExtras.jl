@@ -5,17 +5,17 @@ using BitmapMapsExtras: PALETTE_GRGB, plot_glyph_given_value!, apply_color_by_co
 using BitmapMapsExtras: radial_distance_glyph, GSVector, norm, plot_glyphs!, plot_glyphs
 using BitmapMapsExtras: placements_and_values, pack_glyphs!, Vec2OnGrid, BidirectionOnGrid
 using BitmapMapsExtras: plot_glyphs_given_values!, 𝐧ₚ!, 𝐊!, coarse_radius_for_plotting
-using BitmapMapsExtras: GSTensor, draw_bidirectional_vector_glyph_given_value!
+using BitmapMapsExtras: GSTensor
 using BitmapMapsExtras: coverage_fitting_image, MMatrix
-using BitmapMaps: mark_at!
+using DrawAndSpray: mark_at!
 using Random: MersenneTwister
 using BitmapMapsExtras.TestMatrices
 !@isdefined(is_hash_stored) && include("common.jl")
 
 @testset begin "Mark circumference of a vector glyph"
-    vhash = ["fbe06540f385f075973958a69cf3306531912fad"]
+    vhash = ["0c7aa19cb937e5bea7c38f0389ccf879b0e89a66"]
     COUNT[] = 0
-    img = [1.3f0 *PALETTE_GRGB[1] for i = 1:200, j=1:200]
+    img = fill(RGB{N0f8}(0.624,0.667,0.663), 200, 200)
     cov = [0f0 for i = 1:200, j=1:200]
     gs = GSVector(multip = 1, color = PALETTE_GRGB[3], maxg = 100)
     ptexist = CartesianIndex(100, 100)
@@ -53,22 +53,25 @@ end
     end
     d = Vec2OnGrid(b!, zeros(Float64, 199, 199))
     # Visual check
-    img = [1.3 *PALETTE_GRGB[1] for i = 1:200, j=1:200]
+    img = fill(RGB{N0f8}(0.624,0.667,0.663), 200, 200)
     plot_glyphs!(img, d, ppts, gs)
+    display_if_vscode(img)
     # Only the first glyph is accepted (basic overlap)
     @test placements_and_values(d, gs, ppts) == ([ppts[1]], [[80.0, -20.0]])
     #
     ppts = [CartesianIndex(100, 100), 
             CartesianIndex(100, 130)]
-    img = [1.3 *PALETTE_GRGB[1] for i = 1:200, j=1:200]
+    img = fill(RGB{N0f8}(0.624,0.667,0.663), 200, 200)
     plot_glyphs_given_values!(img, ppts, [[80.0, -20.0], [80.0, -20.0]], gs)
     # Only the first glyph is accepted (glancing overlap)
     @test length(placements_and_values(d, gs, ppts)[1]) == 1
     #
     ppts = [CartesianIndex(100, 100), 
             CartesianIndex(100, 140)]
-    img = [1.3 *PALETTE_GRGB[1] for i = 1:200, j=1:200]
+    # Visual check
+    img = fill(RGB{N0f8}(0.624,0.667,0.663), 200, 200)
     plot_glyphs!(img, d, ppts, gs)
+    display_if_vscode(img)
     # Both glyphs are accepted (but the order may well be another than in ppts)
     @test length(placements_and_values(d, gs, ppts)[1]) == 2
     @test length(placements_and_values(d, gs, ppts)[1]) == 2
@@ -76,9 +79,9 @@ end
 end
 
 @testset begin "pack vector glyphs no collision"
-    vhash = ["3098b8ba4561049251a323c5c31f883532f74328"]
+    vhash = ["5f094c6f8ffddc98c81115f7cbf006c0d24907ea"]
     COUNT[] = 0
-    img = [1.0 *PALETTE_GRGB[1] for i = 1:200, j=1:200]
+    img = fill(PALETTE_GRGB[1], 200, 200)
     b(x, y) = [80.0, -20.0]
     @test_throws MethodError pack_glyphs!(img, b, GSVector())
     d = Vec2OnGrid(𝐧ₚ!, z_paraboloid()[400:599, 400:599])
@@ -90,9 +93,10 @@ end
 
 
 @testset begin "Mark circumference of a bidirectional vector glyph"
-    vhash = ["7694a56bfd0b4870dbf1f4e9ce3fe4818a181e77"]
+    vhash = ["89d43eb2eb5de191f518b22ac203a75083d122b9"]
     COUNT[] = 0
-    img = [1.3f0 *PALETTE_GRGB[1] for i = 1:200, j=1:200]
+    img = fill(RGB{N0f8}(0.624,0.667,0.663), 200, 200)
+
     gs = GSTensor(multip = 0.8, direction = 1, maxg = 200, ming = -200)
     cov = coverage_fitting_image(img, gs)
     @test cov isa Matrix{Float32}
@@ -124,9 +128,9 @@ end
 end
 
 @testset begin "Mark circumference of a tensor glyph"
-    vhash = ["bad8a23f779d368965c98ceaf1908d8f90dd0914"]
+    vhash = ["d066a776c9d6fe142f92587c8a616cb034693523"]
     COUNT[] = 0
-    img = [1.3f0 *PALETTE_GRGB[1] for i = 1:500, j=1:500]
+    img = fill(RGB{N0f8}(0.624,0.667,0.663), 500, 500)
     gs = GSTensor(multip = 2, direction = 1:2, maxg = 500, ming = -500)
     cov = coverage_fitting_image(img, gs)
     @test cov isa Vector{Matrix{Float32}}
@@ -166,19 +170,19 @@ end
     end
     d = BidirectionOnGrid(d!, zeros(Float64, 199, 199))
     # Visual check
-    img = [1.3f0 *PALETTE_GRGB[1] for i = 1:200, j=1:200]
+    img = fill(RGB{N0f8}(0.624,0.667,0.663), 200, 200)
     plot_glyphs!(img, d, ppts, gs)
     # Only the first glyph is accepted (both directions crashing)
     @test placements_and_values(d, gs, ppts) == ([ppts[1]], [[80.0 25.0; 10.0 -85.0]])
     #
     ppts = [CartesianIndex(100, 65), 
             CartesianIndex(90, 155)]
-    img = [1.3 *PALETTE_GRGB[1] for i = 1:200, j=1:200]
+    img = fill(RGB{N0f8}(0.624,0.667,0.663), 200, 200)
     plot_glyphs!(img, d, ppts, gs)
     # Only the first glyph is accepted (primary direction)
     @test length(placements_and_values(d, gs, ppts)[1]) == 1
     #
-    img = [1.3f0 *PALETTE_GRGB[1] for i = 1:300, j=1:300]
+    img = fill(RGB{N0f8}(0.624,0.667,0.663), 300, 300)
     d = BidirectionOnGrid(d!, zeros(Float64, 299, 299))
     ppts = [CartesianIndex(80, 125), 
             CartesianIndex(217, 160)]
@@ -186,7 +190,7 @@ end
     # Only the first glyph is accepted (secondary direction crash)
     @test length(placements_and_values(d, gs, ppts)[1]) == 1
     # 
-    img = [1.3f0 *PALETTE_GRGB[1] for i = 1:300, j=1:300]
+    img = fill(RGB{N0f8}(0.624,0.667,0.663), 300, 300)
     ppts = [CartesianIndex(140, 125), 
             CartesianIndex(140, 185)]
     plot_glyphs!(img, d, ppts, gs)
@@ -196,7 +200,7 @@ end
 
 
 @testset begin "2d vector glyph crash detection, 1 ends within 2"
-    vhash = ["43ac762a85db595f8cb0af41025dfc3e2306430d"]
+    vhash = ["e82dbb97603196a2052a92aad9398551ccedab07"]
     COUNT[] = 0
     gs = GSVector(multip = 1.16, maxg = 200)
     # Here, we check if the crash test works with the
@@ -217,17 +221,15 @@ end
     @test vog(ppts[1].I...) ≈ [56.19722326337802, -41.73574124759311]
     @test vog(ppts[2].I...) ≈ [-42.127051620643385, -55.90448570331049]
     # Visual check
-    img = [1.3f0 * PALETTE_GRGB[1] for i = 1:200, j=1:200]
+    img = fill(RGB{N0f8}(0.624,0.667,0.663), 300, 300)
     plot_glyphs!(img, vog, ppts, gs)
     @test is_hash_stored(img, vhash)
     # 
     @test length(placements_and_values(vog, gs, ppts)[1]) == 1
 end
 
-
-
 @testset begin "2d vector glyph crash detection, 1 crosses 2"
-    vhash = ["9f6b683bf63641275cce5359dc724a51416deae8"]
+    vhash = ["96561b8967219e8e6ca094a0a44e32e10f781b82"]
     COUNT[] = 0
     gs = GSVector(multip = 1.16, maxg = 200)
     # Here, we check if the crash test works with the
@@ -246,7 +248,7 @@ end
     z[ppts[2]] = -127 * π / 180
     vog = Vec2OnGrid(fdir!, z)
     # Visual check
-    img = [1.3f0 * PALETTE_GRGB[1] for i = 1:200, j=1:200]
+    img = fill(RGB{N0f8}(0.624,0.667,0.663), 300, 300)
     plot_glyphs!(img, vog, ppts, gs)
     @test is_hash_stored(img, vhash)
     # 
@@ -254,7 +256,7 @@ end
 end
 
 @testset begin "Bidirectional vector glyph crash detection"
-    vhash = ["885201114670616076c922b1cdc89cd2bb5dacd1"]
+    vhash = ["ed082541e20d1e2da0841b01c1c8d4a6e2d603d1"]
     COUNT[] = 0
     gs = GSTensor(multip = 1, maxg = 100, ming = -100, direction = 1)
     function fdir!(K, a, b, c, d, M, e, f)
@@ -269,7 +271,7 @@ end
     z[ppts[2]] = -127 * π / 180
     bdog = BidirectionOnGrid(fdir!, z)
     # 
-    img = [1.3f0 * PALETTE_GRGB[1] for i = 1:200, j=1:200]
+    img = fill(RGB{N0f8}(0.624,0.667,0.663), 300, 300)
     plot_glyphs!(img, bdog, ppts, gs)
     @test is_hash_stored(img, vhash)
     # Primary - primary 
@@ -277,7 +279,7 @@ end
 end
 
 @testset begin "Bidirectional tensor glyph crash detection"
-    vhash = ["1d01da3ba2286e62b5f8aac56ebcb0b015cbf3a6"]
+    vhash = ["d9f4455e19fcc35bd275c93676823bbc1e420c1e"]
     COUNT[] = 0
     gs = GSTensor(multip = 1, maxg = 100, ming = -100)
     function fdir!(K, a, b, c, d, M, e, f)
@@ -292,7 +294,7 @@ end
     z[ppts[2]] = -127 * π / 180
     bdog = BidirectionOnGrid(fdir!, z)
     # 
-    img = [1.3f0 * PALETTE_GRGB[1] for i = 1:200, j=1:200]
+    img = fill(RGB{N0f8}(0.624,0.667,0.663), 300, 300)
     plot_glyphs!(img, bdog, ppts, gs)
     @test is_hash_stored(img, vhash)
     # 

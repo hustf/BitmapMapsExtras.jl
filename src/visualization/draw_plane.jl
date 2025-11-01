@@ -1,5 +1,4 @@
 # Drawing functionality,
-# builds on `BitmapMaps.jl/mark_utils.jl`.
 # Contains `draw_plane!`, called from `calculate_and_draw.jl`
 
 """

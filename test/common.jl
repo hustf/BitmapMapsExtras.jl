@@ -1,7 +1,8 @@
 # For testing graphically
 # 
 using SHA # Test dependency, temporarily added as a direct dependency.
-using BitmapMaps: channelview, display_if_vscode, RGB, RGBA, N0f8
+using ImageCore: channelview, RGB, RGBA, N0f8
+using DrawAndSpray: display_if_vscode
 
 function hash_image(img)
     io = IOBuffer()

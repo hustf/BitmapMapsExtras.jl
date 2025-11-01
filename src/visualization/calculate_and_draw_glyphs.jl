@@ -16,7 +16,7 @@
 
 """
     plot_glyphs(z::Matrix{<:AbstractFloat}, pts, gs::AbstractGlyphSpec)
-    plot_glyphs(b::AbstractIJFunctor, pts, gs::AbstractGlyphSpec)
+    plot_glyphs(fij::AbstractIJFunctor, pts, gs::AbstractGlyphSpec)
 
 Plot the glyph specificed by `gs` at every `pts`. 
 
@@ -28,25 +28,25 @@ function plot_glyphs(z::Matrix{<:AbstractFloat}, pts, gs::AbstractGlyphSpec)
     # Modify the image
     plot_glyphs!(img, z, pts, gs)
 end
-function plot_glyphs(b::AbstractIJFunctor, pts, gs::AbstractGlyphSpec)
+function plot_glyphs(fij::AbstractIJFunctor, pts, gs::AbstractGlyphSpec)
     # Allocate an empty color image (since user didn't supply one)
-    img = zeros(RGBA{N0f8}, size(b.z)...)
+    img = zeros(RGBA{N0f8}, size(fij.z)...)
     # Modify the image
-    plot_glyphs!(img, b, pts, gs)
+    plot_glyphs!(img, fij, pts, gs)
 end
 """
     plot_glyphs!(img::Matrix{<:Colorant}, z::Matrix{<:AbstractFloat}, pts, gs::AbstractGlyphSpec)
-    plot_glyphs!(img::Matrix{<:Colorant}, b::AbstractIJFunctor, pts, gs::AbstractGlyphSpec)
+    plot_glyphs!(img::Matrix{<:Colorant}, fij::AbstractIJFunctor, pts, gs::AbstractGlyphSpec)
     plot_glyphs!(cov::T, z::Matrix{<:AbstractFloat}, pts, gs::GSTangentBasis) where 
         {T<:Vector{Matrix{Float32}}}
     plot_glyphs!(cov::T, z::Matrix{<:AbstractFloat}, pts, gs) where 
         T<:Union{Matrix{Float32}, Vector{Matrix{Float32}}}
-    plot_glyphs!(cov::T, b::AbstractIJFunctor, pts, gs::AbstractGlyphSpec) where 
+    plot_glyphs!(cov::T, fij::AbstractIJFunctor, pts, gs::AbstractGlyphSpec) where 
         {T<:Union{Matrix{Float32}, Vector{Matrix{Float32}}}}
 
 Modify the image `img` by plotting the glyph specificed at every `pts`. 
 
-Values that the glyps represent are based on `z`, or by `b`.
+Values that the glyps represent are based on `z`, or by `fij`.
 
 Methods with the `cov` argument can be considered internal. `cov` stands for coverage in a specific color.
 """
@@ -59,12 +59,12 @@ function plot_glyphs!(img::Matrix{<:Colorant}, z::Matrix{<:AbstractFloat}, pts, 
     apply_color_by_coverage!(img, cov, gs)
     img
 end
-function plot_glyphs!(img::Matrix{<:Colorant}, b::AbstractIJFunctor, pts, gs::AbstractGlyphSpec)
+function plot_glyphs!(img::Matrix{<:Colorant}, fij::AbstractIJFunctor, pts, gs::AbstractGlyphSpec)
     # This layer in the call hierarchy: img-> cov -> img
     cov = coverage_fitting_image(img, gs)
     # Modify cover buffer(s)
-    plot_glyphs!(cov, b, pts, gs)
-    # Cover ('unlimited coverage') maped to colors
+    plot_glyphs!(cov, fij, pts, gs)
+    # Cover ('unlimited coverage') mapped to colors
     apply_color_by_coverage!(img, cov, gs)
     img
 end
@@ -86,12 +86,12 @@ function plot_glyphs!(cov::T, z::Matrix{<:AbstractFloat}, pts, gs) where
     # This makes a default functor for z (containing the z values) and passes it on.
     plot_glyphs!(cov, default_ij_functor(z, gs), pts, gs)
 end
-function plot_glyphs!(cov::T, b::AbstractIJFunctor, pts, gs::AbstractGlyphSpec) where 
+function plot_glyphs!(cov::T, fij::AbstractIJFunctor, pts, gs::AbstractGlyphSpec) where 
     {T<:Union{Matrix{Float32}, Vector{Matrix{Float32}}}}
     # This plots a glyph at each pt without storing the values.
     # No domain checking.
     for pt in pts
-        value = b(pt.I...)
+        value = fij(pt.I...)
         plot_glyph_given_value!(cov, pt, value, gs)
     end
     cov
@@ -128,9 +128,8 @@ function plot_glyphs_given_values!(cov::T, pts, values, gs::AbstractGlyphSpec) w
 end
 
 
-# These methods are placed here because they use an 'internal' type,
-# whereas `draw_direct.jl` is more general and might be moved to 
-# a separate package.
+# These methods extension use types defined in this package. They,
+# whereas `DrawAndSpray.apply_color_by_coverage!` is more general
 """
     apply_color_by_coverage!(img, cov, gs::AbstractGlyphSpec)
     apply_color_by_coverage!(img, cov, gs::GSTensor{<:Any, 1})
@@ -155,8 +154,6 @@ function apply_color_by_coverage!(img, cov, gs::GSTangentBasis)
     apply_color_by_any_coverage!(img, cov[3], gs.colors[3])
     img
 end
-
-
 
 """
     coverage_fitting_image(img, gs::AbstractGlyphSpec)

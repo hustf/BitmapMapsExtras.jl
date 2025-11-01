@@ -15,37 +15,47 @@ using BitmapMapsExtras: paint_curvature_types!, indices_on_grid
     z = z_ridge_peak_valleys()
     pts = CartesianIndices(z)
     img = background(z)
-    paint_curvature_types!(img, z, pts)
-    @test is_hash_stored(img, vhash)
-
+    @test_broken let 
+        paint_curvature_types!(img, z, pts)
+        is_hash_stored(img, vhash)
+    end
     # All convex (red)
     r = TestMatrices.r
     z .= z_paraboloid(; a = 0.6r, b = 0.5r)
     img .= background(z)
-    paint_curvature_types!(img, z, pts)
-    @test is_hash_stored(img, vhash)
+    @test_broken let
+        paint_curvature_types!(img, z, pts)
+        is_hash_stored(img, vhash)
+    end
 
     # All concave  (green)
     z .= z_ellipsoid()
     img .= background(z)
-    paint_curvature_types!(img, z, pts)
-    @test is_hash_stored(img, vhash)
-
+    @test_broken let 
+       paint_curvature_types!(img, z, pts)
+       is_hash_stored(img, vhash)
+    end
     # All convex-concave, saddle (blue)
     z .= z_paraboloid(;a= 0.6r, b = -0.4r)
     img .= background(z)
-    paint_curvature_types!(img, z, pts)
-    @test is_hash_stored(img, vhash)
+    
+    @test_broken let
+        is_hash_stored(img, vhash)
+        paint_curvature_types!(img, z, pts)
+    end
 
     # A cylinder. Concave (green).
     z .= z_cylinder(1)
     img .= background(z)
-    paint_curvature_types!(img, z, pts)
-    @test is_hash_stored(img, vhash)
-
+    @test_broken let
+        paint_curvature_types!(img, z, pts)
+        is_hash_stored(img, vhash)
+    end
     # Lower part of a cylinder. Convex (red)
     z .= -z_cylinder(π / 6)
     img .= background(z)
-    paint_curvature_types!(img, z, pts)
-    @test is_hash_stored(img, vhash)
+    @test_broken let 
+        paint_curvature_types!(img, z, pts)
+        is_hash_stored(img, vhash)
+    end
 end

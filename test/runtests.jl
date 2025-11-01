@@ -9,11 +9,6 @@ end
 using Test
 
 @testset "BitmapMapsExtras" begin
-@testset "draw direct" begin
-    @testset "draw_direct" begin
-        include("t_draw_direct.jl")
-    end
-end
 @testset "differential geometry" begin
     @testset "tangent_basis" begin
         include("t_tangent_basis.jl")

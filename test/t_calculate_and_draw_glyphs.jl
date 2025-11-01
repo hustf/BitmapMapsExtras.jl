@@ -1,4 +1,5 @@
 using Test
+using ImageCore: N0f8, RGBA
 using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
 using BitmapMapsExtras: plot_glyphs!, plot_glyphs, PALETTE_GRGB, RGB
@@ -7,8 +8,6 @@ using BitmapMapsExtras: Vec2OnGrid, BidirectionOnGrid, 𝐧ₚᵤ!
 using BitmapMapsExtras: indices_scattered, indices_on_grid
 using BitmapMapsExtras: radial_distance_glyph, pack_glyphs!
 using BitmapMapsExtras: indices_on_grid, default_ij_functor, 𝐊ᵤ!, 𝐊!
-using BitmapMaps: save_png_with_phys
-
 
 !@isdefined(hash_image) && include("common.jl")
 
@@ -137,7 +136,7 @@ end
 end
 
 @testset "More examples curvature" begin
-    vhash = vhash = ["dda981106fbdba38ccae4d6004cf628d733054e3", "b006ef40610d3be1e13f0dd5a66c016be775860f", "87b953a36bf264576bbf5c4c209ebb040bcac001", "074614f13d7b76f9b8364f3e45ab1de4ef10aa11", "3fe83b80336530f288bb62f1d920fa95c992f57d", "70088b51485d4410647aaf54117aa809928bae9a", "7fad0a34938af4fe959b45f19a7c841adb4c2314", "8346fc20fe8d0b6476849ba747389457299ee261"]
+    vhash = ["dda981106fbdba38ccae4d6004cf628d733054e3", "b006ef40610d3be1e13f0dd5a66c016be775860f", "87b953a36bf264576bbf5c4c209ebb040bcac001", "074614f13d7b76f9b8364f3e45ab1de4ef10aa11", "3fe83b80336530f288bb62f1d920fa95c992f57d", "70088b51485d4410647aaf54117aa809928bae9a", "77b148374b5ee437f44aa4ac6213e02cee8b7c87", "2a3322a5b2a43d47fa52b56cf078d7a2fea52ac1"]
     COUNT[] = 0
     bdog = BidirectionOnGrid(𝐊!, z_cylinder_offset(π / 6))
     img = background(bdog)
@@ -182,7 +181,7 @@ end
 
 
 @testset "More examples unit curvature" begin
-    vhash = ["6662ab9dd72373e6318f77260971902ab9babb5c", "94356cf19e013fc63a1d29b61e98f0ad98f75d7e", "0c3e2e07d1e86952c627ea9ca4d536ed8295ac89", "f8a967162188d9733aabced5ac1fbd6b399294bd", "675b8ef76cee851a263a9c594de9d576c1610dcb", "4ea93a4ea55472c3b490fcefe8ecd01999b5c892", "3591970154ef4622b01c607926c246d194245d04", "1e4488bb36266c67db8476607ad7999deaa8c6ff"]
+    vhash = ["6662ab9dd72373e6318f77260971902ab9babb5c", "94356cf19e013fc63a1d29b61e98f0ad98f75d7e", "0c3e2e07d1e86952c627ea9ca4d536ed8295ac89", "f8a967162188d9733aabced5ac1fbd6b399294bd", "675b8ef76cee851a263a9c594de9d576c1610dcb", "4ea93a4ea55472c3b490fcefe8ecd01999b5c892", "3917fe66c32271ead12ba7e2ff2422a78e5149f4", "5ee88c4a619397e3d672eb59be610de5c1e6ad0f"]
     COUNT[] = 0
     bdog = BidirectionOnGrid(𝐊ᵤ!, z_cylinder_offset(π / 6))
     img = background(bdog)
@@ -225,3 +224,34 @@ end
     @test is_hash_stored(img, vhash)
 end
 
+# DEV 
+
+# This aims to benchmark the drawing functionality itself.
+#=
+using BenchmarkTools # test dependency
+using BitmapMapsExtras: indices_scattered, MersenneTwister
+using BitmapMapsExtras: placements_and_values, plot_glyphs_given_values!
+!@isdefined(hash_image) && include("common.jl")
+
+vhash = ["943f92be5048f710722304cbcca17b60e20bc2b2"]
+COUNT[] = 0
+#
+bdog = BidirectionOnGrid(𝐊!, z_ellipsoid(; tilt = π / 4))
+img = background(bdog);
+display_if_vscode(img)
+
+# We're unpacking this call:
+# pack_glyphs!(img, bdog, GSTensor(multip = 12000, strength = 10))
+scatterdist = 3.0
+seed = MersenneTwister(123)
+fij = bdog
+gs = GSTensor(multip = 12000, strength = 10)
+ppts = indices_scattered(fij; scatterdist, seed)
+filtered_placements, filtered_values = placements_and_values(fij, gs, ppts)
+# Now benchmark the plotting for later reference
+# 33.181 ms (5480 allocations: 7.82 MiB) # Before moving funcs to `DrawAndSpray`
+# 27.076 ms (5394 allocations: 15.43 MiB) # After moving funcs to 'DrawAndSpray'
+@btime plot_glyphs_given_values!(img, filtered_placements, filtered_values, gs)
+@test is_hash_stored(img, vhash)
+@profview plot_glyphs_given_values!(img, filtered_placements, filtered_values, gs)
+=#

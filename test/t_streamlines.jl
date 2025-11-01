@@ -3,8 +3,8 @@ using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
 using BitmapMapsExtras: plot_streamlines!, 𝐧ₚ!, 𝐧ₚᵤ!, PALETTE_GRGB
 using BitmapMapsExtras: indices_on_grid, Stroke, Vec2AtXY
-import BitmapMaps
-using BitmapMaps: mark_at!, divergence_of_gradients, display_if_vscode
+using BitmapMapsExtras: mark_at!, display_if_vscode
+#using BitmapMaps: divergence_of_gradients
 import StatsBase
 using StatsBase: Weights, sample
 import Random
@@ -101,7 +101,6 @@ end
     mark_at!(img, pts, 3, "in_circle")
     @test is_hash_stored(img, vhash)
 end
-
 @testset "Streamlines without grid" begin
     vhash = ["2829699623bcb078046b54de0951b22e9c47e401", "4a0ec1d800241c3834c48ea4ddc45676287b90a0"]
     COUNT[] = 0
@@ -118,18 +117,18 @@ end
     plot_streamlines!(img, vaxy, pts; dtmax = 1, stroke)
     @test is_hash_stored(img, vhash)
     #
+    #=
     # Originating at 'sources' (convex terrain)
     vals1 = divergence_of_gradients(-z_ridge_peak_valleys())
     vals2 = clamp.(vals1, 0.003, 1.0) .- 0.003
     seed_dens = clamp.(vals2 .* 100, 0, 1.0)
     # Drop the extreme area near the centre.
     seed_dens[400:600, 300:700] .= 0.0
-    display_if_vscode(background(seed_dens))
     n = 1000
     pts = sample(MersenneTwister(123), CartesianIndices(seed_dens), Weights(vec(seed_dens)), n);
     img = background(z)
     mark_at!(img, pts, 3, "in_circle")
-    display_if_vscode(img)
     plot_streamlines!(img, vaxy, pts; dtmax = 1)
     @test is_hash_stored(img, vhash)
+    =#
 end

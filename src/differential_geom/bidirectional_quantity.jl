@@ -50,32 +50,3 @@ end
 
 
 
-"""
-    is_bidirec_vect_positive(v::AbstractVector) --> Bool
-
-v is a 2d vector representing a bi-directional quantity, 
-i.e. one that is is π-symmetric or 180° symmetric, like uniaxial stress
-or curvature.
-
-If v = [x, y] is in the second or fourth quadrant: 
-  - its sign is negative.
-  - the quantity magnitude is √(x^2 + y^2)
-  - it is directed along α = atan(y, x) \n 
-    and also along α + π 
-
-# Example
-```
-julia> is_bidirec_vect_positive([1.0, 0.0])
-true
-
-julia> is_bidirec_vect_positive([1.0, -0.0])
-false
-
-julia> is_bidirec_vect_positive([1.0, -1.0])
-false
-
-julia> is_bidirec_vect_positive([-1.0, -2.0])
-false
-```
-"""
-is_bidirec_vect_positive(v::AbstractVector) = !signbit(v[2])
