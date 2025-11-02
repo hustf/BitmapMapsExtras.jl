@@ -4,7 +4,7 @@ using BitmapMapsExtras.TestMatrices
 using BitmapMapsExtras: plot_streamlines!, 𝐊!, 𝐊ᵤ!, Stroke, indices_on_grid
 using BitmapMapsExtras: SelectedVec2AtXY
 using BitmapMapsExtras: PALETTE_GRGB
-using itmapMapsExtras: mark_at!, display_if_vscode
+using BitmapMapsExtras: mark_at!, display_if_vscode
 #import BitmapMaps
 #using BitmapMaps: divergence_of_gradients
 import StatsBase
@@ -16,7 +16,7 @@ using Random: MersenneTwister
 !@isdefined(is_hash_stored) && include("common.jl")
 
 @testset "Streamlines, 𝐊ᵤ! versus less graphically useful 𝐊!" begin
-    vhash = ["1bc542fd14604a6242058ed4b79807e8c5ece082", "e66a13d3828fb1ee9c5ba86dde93e6d418ec7535"]
+    vhash = ["c068c26f74832c14e932dfbc1f36fd534f2fd34b", "f7ee461e478df960bd471ecb30627dd6801b61af"]
     COUNT[] = 0
     saxy = SelectedVec2AtXY(𝐊!, z_cylinder(π / 6), false, true);
     img = background(saxy)
@@ -39,7 +39,7 @@ end
 
 
 @testset "Solution keyword example" begin
-    vhash = vhash = ["d625d4caa33ddbef09c51072d2f3a05df38b1956", "32ad175e9c45dfce5afbafbe5a35d8467984d6c1", "8a15a49dad200fda49df737f6aed40017a849a49"]
+    vhash = ["635f10d34bab4966441a911c5ade1d9fea0480d9", "5fbe9a19458055d12f9f020771bb4ccf7382f7eb", "2bfdf353db2fe2f8059abdf4640c1dd9b59482cc"]
     COUNT[] = 0
     saxy = SelectedVec2AtXY(𝐊ᵤ!, z_ellipsoid(), true, true)
     pts = indices_on_grid(saxy)
@@ -64,7 +64,7 @@ end
 
 
 @testset "Streamlines starting on grid" begin
-    vhash = ["2edf25f7b1ec183135c03f7fb466f049e5a1c901", "6c435eeba7681eee0244ad9133106b5061e30c86", "db78a7768bd8f5cd0f7844c4cd1f4fa2eada6569", "9c5d765f3654873d7f3c775059cf644f72df05bd", "0310688a14af0a61b2b51525a6a7b14f36f96038", "2ee096ed3b6d37f7541ee38dd1e7f0c743d79046", "3e9a898ee60b93de1c28199c17c64c7cff100791", "68d793cfe9056c56c6881903a4ffe89b211ea071"]
+    vhash = ["aabb60f08d5ac576b5d40646b320c5dd16e2ad41", "688d26635a39906a32892bd6f7c01fe656dd7c8e", "e0c0d90f01c9395e5dec88ff9ecb4ceab682b749", "bde19f8adf00995546d9a17652bff0720fdcb50f", "77daa5c49e14502982cc67bcd229119d378d5d98", "32a336a0b575ff4e3c090f38716a3c31d96f6a99", "cf11016d871e6e0c44671a8c422975bf524c1bae", "1fb02db486fe72d7b21596edafb6abd0aa0ee6ec"]
     COUNT[] = 0
     vzf = [z_cos,
         () -> z_cylinder(π / 6),
@@ -86,7 +86,7 @@ end
 
 
 @testset "Symmetric directions with different appearance" begin
-    vhash = ["34333f7e2e9ff779b9ec5d103fb7bee561a828de"]
+    vhash = ["a8bfc72a759b56129cbc9c6ef4d459d196cf1f55"]
     COUNT[] = 0
     # Short streamlines from grid points. The direction is the first,
     # which is systematic although hard to predict
@@ -103,7 +103,7 @@ end
 end
 
 @testset "Many streamlines in both directions from grid points" begin
-    vhash = ["bebbcb80d9e5619469ef0b29471cab36e096cf4d", "6c84312f4790457b9389df031740a44d2606e9eb"]
+    vhash = ["9ce7899a3307ad5be85819d082167e3b1f187e6b", "a815aa874f50e76336112269e7c0812d9366af16"]
     COUNT[] = 0
     stroke = Stroke(strength = 0.05)
     tstop = 2000 # default is 1000
@@ -131,7 +131,7 @@ end
 end
 
 @testset "Streamlines without grid" begin
-    vhash = ["e5bb9590c064ad76ef53bd8a3545870752542284", "1baa3a71d3e0b660c333cdcd6948e207f2e89ae4"]
+    vhash = ["dcf4aa68870019a7a368ef45838e1efe2476c02c", "79e36e9e5e1be84759f36a1e0ad90e59f0008070"]
     COUNT[] = 0
     stroke = Stroke(strength = 0.05)
     tstop = 2000 # default is 1000

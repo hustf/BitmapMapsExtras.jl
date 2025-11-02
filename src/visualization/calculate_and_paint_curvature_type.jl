@@ -48,24 +48,20 @@ end
 # Graphical output 
 
 """
-paint_curvature_types!(img, z, pts;  
+paint_curvature_types!(img::Matrix{<: RGB}, z, pts;  
     maxcurv_flat = 0.00001, palette = PALETTE_GRGB)
 
 Overlays a color-map onto the image img.
 
 See callees `color_point_by_curvature_type!` and  `curvature_type`!
 """
-function paint_curvature_types!(img, z, pts;  
-    maxcurv_flat = 0.00001, palette = PALETTE_GRGB)
+function paint_curvature_types!(img::Matrix{<: RGB}, z, pts;  
+    maxcurv_flat = 0.00001, palette = PALETTE_GRGB) 
     #
     buf = zeros(RGB{N0f8}, size(img)...)
     _paint_curvature_types!(buf, z, pts, maxcurv_flat, palette)
-    # Composite buf over img in-place.
-    # mode = BlendHue: The result is a color with the hue of the source color and the saturation and luminosity of the backdrop color.
-    #      --> overwrite img with buf
-    throw(ErrorException("TEMP. Replace with something from DrawAndSpray.jl"))
-    # mode::BlendMode = BlendHue
-    #@. img = blend(img, buf, mode = mode)
+    # Take hue and chroma from buf
+    chromaticity_over!(img, buf)
     img
 end 
 

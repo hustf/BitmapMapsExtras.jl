@@ -1,5 +1,5 @@
 using Test
-using ImageCore: N0f8, RGBA
+using BitmapMapsExtras: N0f8, RGBA
 using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
 using BitmapMapsExtras: plot_glyphs!, plot_glyphs, PALETTE_GRGB, RGB

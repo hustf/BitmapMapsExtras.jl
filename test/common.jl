@@ -1,8 +1,9 @@
 # For testing graphically
 # 
 using SHA # Test dependency, temporarily added as a direct dependency.
-using ImageCore: channelview, RGB, RGBA, N0f8
-using DrawAndSpray: display_if_vscode
+
+using BitmapMapsExtras: display_if_vscode, Colorant
+using BitmapMapsExtras: channelview
 
 function hash_image(img)
     io = IOBuffer()
@@ -22,7 +23,7 @@ const COUNT = Ref(0)
 (::typeof(COUNT))() = COUNT[] += 1
 
 function is_hash_stored(img, vhash)
-    if eltype(img) <: Union{RGBA{N0f8}, RGB{N0f8}, RGB{Float32}, RGBA{Float32}}
+    if eltype(img) <: Colorant
         display_if_vscode(img)
     end
     if isempty(vhash) || (length(vhash) < COUNT[])
@@ -31,7 +32,9 @@ function is_hash_stored(img, vhash)
         # (provided that the output IS ok!)
         s = "vhash = " * string(vhash)
         printstyled("\n " * s * "\n", color = :176)
-        clipboard(s)
+        if is_interactive()
+            clipboard(s)
+        end
         # This ensures the rest of the tests in this set branch here, too.
         # Updating the test results is quick, with one paste operation per testset.
         COUNT(); COUNT()

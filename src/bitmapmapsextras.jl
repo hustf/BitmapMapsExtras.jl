@@ -5,11 +5,12 @@ import DrawAndSpray
 using DrawAndSpray: line!, spray_along_nested_indices!, draw_bidirectional_vector!
 using DrawAndSpray: is_bidirec_vect_positive, spray!, display_if_vscode
 using DrawAndSpray: draw_vector!, apply_color_by_any_coverage!, mark_at!
-import DrawAndSpray: apply_color_by_coverage!
+import DrawAndSpray: apply_color_by_coverage!, over!, chromaticity_over!
 import ImageFiltering
 import ImageFiltering.Kernel
 import ImageCore
 using ImageCore: N0f8, GrayA, RGBA, colormap, Gray, RGB, Lab, alpha, Colorant
+using ImageCore: channelview
 import StaticArrays
 using StaticArrays: SVector, MVector, MMatrix, SMatrix
 import LinearAlgebra
@@ -19,8 +20,6 @@ using LinearSolve: init, LinearProblem, solve!, NormalCholeskyFactorization
 using LinearSolve: OperatorCondition, OperatorAssumptions, LinearCache
 import ColorSchemes
 using ColorSchemes: ColorScheme
-import OffsetArrays
-using OffsetArrays: OffsetMatrix
 import Random
 using Random: MersenneTwister, randperm
 import Unicode

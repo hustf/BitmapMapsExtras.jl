@@ -7,7 +7,7 @@ using BitmapMapsExtras: placements_and_values, pack_glyphs!, Vec2OnGrid, Bidirec
 using BitmapMapsExtras: plot_glyphs_given_values!, 𝐧ₚ!, 𝐊!, coarse_radius_for_plotting
 using BitmapMapsExtras: GSTensor
 using BitmapMapsExtras: coverage_fitting_image, MMatrix
-using DrawAndSpray: mark_at!
+using BitmapMapsExtras: mark_at!
 using Random: MersenneTwister
 using BitmapMapsExtras.TestMatrices
 !@isdefined(is_hash_stored) && include("common.jl")
