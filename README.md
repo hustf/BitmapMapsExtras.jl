@@ -1,77 +1,74 @@
 # BitmapMapsExtra
 
-High dependency, dubious gain: Experiments on top of the BitmapMaps pipeline.
+Experiments on top of the BitmapMaps pipeline. 
 
-This package is intended for modifying Bitmaps graphics.
+## Graphic output
 
-## Drawing
+BitmapMapsExtras can, based on an elevation matrix:
 
-On its own, BitmapMaps can draw single-color lines, triangles etc. top of a bitmap already. Text is provided in a vector graphics - svg - layer.
-
-BitmapMapsExtras can:
-
-- Draw colorful and transparent glyphs
-- Pack glyphs, respecting the size of each
-- Make simple grids of glyphs, or on directly specified locations.
-- Draw streamline plots. Most typically, uphill or downhill streamlines, but also
-  lines of curvature. Such plots are actually ensembles of (very fast) differential equation solutions.
-- Paint regions. Typically convex, concave, convex-concave or plane regions. 
-
-## Types of glyphs 
-
-- Vector glyph 
-  
-  Similar to an arrow-style glyph, shows a positive value, and a direction. The default glyph is calculated from surface normals.
-
-- Tangent base glyph
-
-  Shows the surface-aligned tangent basis, i.e. a 3d coordinate system which is used to calculate curvature. 
-
-- Bidirectional vector glyph
-  
-  Shows a signed value and a line of action, but no single direction along that line. The property shown is 180° symmetrical, such as tensile force in a rope. The default glyph is calculated from one of two principal curvatures of a surface. 
-  
-- Principal directions glyph
-
-  This is a pair of bidirectional vector glyphs. When viewed directly along a surface normal, they are perpendicular. The default shows principal surface curvatures - the signed values of curvature in the direction of maximum and minimum curvature. 
+- Draw streamlines. Most typically downhill streamlines, but also
+  lines of curvature. Individual lines are solutions to differential equations.
+- Draw colorful and transparent glyphs:
+  * 2d vector
+  * 180° symmetrical 2d vector
+  * Frames of reference (Darboux), local planes
+- Place glyphs tightly packed respecting size, on grids, or random distributions
+- Paint regions by convexity: 
+  * Convex - convex
+  * Convex - flat
+  * Convex - concave
+  * Flat - flat
+  * Flat - concave
+  * Concave - concave
 
 ## Differential geometry functions
 
-These functions have discrete domains. They are fast estimators for properties at cells of a gridded surface, like a grey-scale image or elevation map.
-
 - Normal vector projection, 𝐧ₚ
-
-Where BitmapMaps estimates based on a 3x3 grid, this uses a 5x5 grid around each pixel.
-
-`𝐧ₚ!` is the default function for making a `Vec2OnGrid` functor or object. `Vec2OnGrid` is the default `AbstractIJFunctor` for `GSVector` glyph specifications.
-
-
-- Tangent basis, `tangent_basis`
-
-  Contrary to textbook practice, we choose a tangent x-axis in the elevation surface's yz-plane. This samples a 5x5 window.
-
 - Principal curvatures components, 𝐊
 
-  Samples a 5x5 window around each pixel or cell. This estimator is optimized against known curvature functions for spheroids, cylinders, etc. Still, it is inaccurate for steep terrain (> 60°).
+Both sample the elvation matrix, are allocation-free and fast. They have normalized-length versions, which is useful for drawing streamline plots. Both sample from a window of 5x5 in an elevation matrix and are defined on
+discrete pixels.
 
-## Streamlines
+Similar concepts, say stress, strain or creep tensors, could be plugged in to make similar graphics.
 
-The familiar example is tracing a curve directly downhill from a point. Doing this accurately requires that we make continuous domains. We do this internally with `Vec2AtXY` or `BidirectionAtXY` types.
+
+## `AbstractXYFunctor` and `AbstractIJFunctor`
+
+Functors combine a function and its input matrix. The concrete types are
+
+- `Vec2AtXY` and `Vec2OnGrid`
+- `BidirectionAtXY` and `BidirectionOnGrid` 
+- `SelectedVec2AtXY`
+
+
+## `AbstractGlyphSpec` and `AbstractCurveSpec`
+
+...for specifying visual appearance
+
+
+## Some loose notes
 
 `Vec2AtXY` enables integration along lines of descent or ascent. Visually, that
-traces out a streamline. If we are only interested in the streamline shape for graphical purposes, we can integrate `𝐧ₚᵤ` (the pure direction of descent) instead of `𝐧ₚ`. The result of integration along such a path is simple the elevation difference between start and finish. 
+traces out a streamline. If we are only interested in the streamline shape for graphical purposes, we can integrate `𝐧ₚᵤ` (the direction of descent stripped from its steepness value) instead of `𝐧ₚ`. The result of integration along such a path is simple the elevation difference between start and finish. The direction of `𝐧ₚ` is always downhill, but we can move uphill by reversing the direction of 'time'.
 
-`BidirectionAtXY` enables streamline integration along lines of curvature. Since curvature is a matrix rather than a vector, we must choose between following lines of maximal or minimal curvature. The result of integration along such a line is change in steepness angle. However, since we're dealing with 2.5D height maps, this restricts the range to <-π, π>. By intuition, any streamline ought to be cyclic, or end in a plane like a lake. 
+Lines of curvature are made by picking one four directions, moving in that direction, and then picking direction again. If we do that consistently, we trace out a streamline.
+The choice is between lines of maximal or minimal curvature, and in which of two directions on each of those.
 
-For both types of streamline, they are more interesting in groups. For example, downhill streamlines collect in valleys, uphill streamlines collect in ridges and local summits. 
+ The result of integration along a line of curvature is change in steepness angle. However, since we're dealing with 2.5D height maps, this restricts the range to <-π, π>. By intuition, any streamline ought to be cyclic, or end in a point where we can't consistently move forward. For example, that might be a planar region.
+
+Both types of streamline, they are more interesting in groups. For example, downhill streamlines collect in valleys, uphill streamlines collect in ridges and local summits. 
 
 A collection of streamlines starting points is an ensemble. An ensemble might be a grid, uniformly random, or based on e.g. divergence (as in fluid flow) or previously drawn [hachures](https://andywoodruff.com/blog/hachures-and-sketchy-relief-maps/) in an iterative approach. 
 
-
-We're using [OrdinaryDiffEq](https://docs.sciml.ai/OrdinaryDiffEq/stable/) to make these streamlines. Since our functors, or objects, are memory allocation free, we can find streamlines very effectively, even without advanced parallelism.
-
+We're using [OrdinaryDiffEq](https://docs.sciml.ai/OrdinaryDiffEq/stable/) to make these streamlines. Since our functors, or objects, are memory allocation free, we can find streamlines very effectively, even without using computational parallelism.
 
 ## Current progress
+
+Version 0.1.2
+
+Move graphics code to `DrawAndSpray.jl`
+Drop troublesome dependency on `ColorBlendModes`.
+Drop dependency on `BitmapMaps.jl`, temporarily in tests.
 
 Version 0.0.15
 

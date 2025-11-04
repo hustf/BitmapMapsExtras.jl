@@ -14,7 +14,7 @@ using Random: MersenneTwister
 
 
 @testset "Streamlines, 𝐧ₚᵤ! versus 𝐧ₚ!" begin
-    vhash = ["6c3b833da3a0cee35fa076414b1da634247f51d9", "a060f0b8c67c8c6747a052e264794ea2fa9a0ee9"]
+    vhash = ["e4afae413dec900f7124795dd323ca189b48513e", "8c8eb2d82316d0274ec6a7652d378933487bdaab"]
     COUNT[] = 0
     vaxy = Vec2AtXY(𝐧ₚ!, z_cylinder(π / 6));
     pts = indices_on_grid(vaxy)
@@ -34,7 +34,7 @@ using Random: MersenneTwister
 end
 
 @testset "Solution keyword example" begin
-    vhash =  ["7f7d44aa5486b0247ea3040618522f8ef0fd1238", "3c5b19a9df2cba1c5b58bd08f539452a04e40135"]
+    vhash = ["91cd4ba192a5e2c8593298ac153913f42b6d5817", "6b876dfa7c901ccae0a164f540a0c292db74fc2e"]
     COUNT[] = 0
     # Streamlines ending up far into a flat area.
     vaxy = Vec2AtXY(𝐧ₚ!, z_sphere());
@@ -49,7 +49,7 @@ end
 end
 
 @testset "Streamlines starting on grid" begin
-    vhash = ["a5dd5f4a9ec2058c9c91747232e0501ddb3a8ff3", "5edbfcccee28b502039a6f9be9b21ca3d72f81b8", "c4288308518d82734246b180fdf227b355e79557", "795c4ae66d13e8fdc199c34b1c88d1c43dcb1763", "0805fe7355fdeb26d210899725ed0f61a93ee182", "23321207f7815bb4fb723e83a90e85df1120b5dc", "93d90e879393339722160ed52540898fd4d20cde", "3c5b19a9df2cba1c5b58bd08f539452a04e40135"] 
+    vhash = ["aa5122d77b6b4c25c0e5960cf982c81f06aa5d53", "ac181fe1d82fdcacd26bd41b11ac9c49f9b1dbdb", "6cfee7330ccc8450899157b7f70d21a0cfc6c408", "18d4771ce9e5668d24a576436ae69eeaa6befaa8", "60eff50548ed1a5e66e3234443abd68f1849d570", "03e7a8bf15e0774d84843e0d98f7551fca19693e", "73ed530a50f186e71e3de71e4d579bdc9e5299d1", "6b876dfa7c901ccae0a164f540a0c292db74fc2e"]
     COUNT[] = 0
     vzf = [z_cos,
         () -> z_cylinder(π / 6),
@@ -69,9 +69,8 @@ end
     end
 end
 
-
 @testset "Uphill and downhill with different appearance" begin
-    vhash =  ["7826964a3761926ef6d136820a0a488300f768b8", "45ab184d1308335c349ffdad01a64c8afe29a822", "ac0bd7d1798c752524bb8ad19234fe197f27cfa4"]
+    vhash = ["111d1c783b3dc941f6a7c4a2ea490bdad2c8a1b5", "3d4c6e9ccb17011eec83c51cddbc81994c8fcc3a", "5ee5d2ce26fd22b0daded2ee34f7e1aae36aa036"]
     COUNT[] = 0
     # Short streamlines down from grid points
     vaxy = Vec2AtXY(𝐧ₚ!, z_ridge_peak_valleys())
@@ -101,8 +100,9 @@ end
     mark_at!(img, pts, 3, "in_circle")
     @test is_hash_stored(img, vhash)
 end
+
 @testset "Streamlines without grid" begin
-    vhash =  String[]
+    vhash = ["adff000734b6448a50ef8bcd1991a0a1bfd2cb1f"]
     COUNT[] = 0
     z = z_ridge_peak_valleys()
     # Originating at points where z > 0
@@ -117,6 +117,7 @@ end
     plot_streamlines!(img, vaxy, pts; dtmax = 1, stroke)
     @test is_hash_stored(img, vhash)
     #
+    # Commented out while BitmapMaps is a troublesome dependency
     #=
     # Originating at 'sources' (convex terrain)
     vals1 = divergence_of_gradients(-z_ridge_peak_valleys())

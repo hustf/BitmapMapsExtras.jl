@@ -2,6 +2,7 @@ using Test
 using BitmapMapsExtras
 using BitmapMapsExtras.TestMatrices
 using BitmapMapsExtras: paint_curvature_types!, indices_on_grid, RGB
+using BitmapMapsExtras: Random
 
 !@isdefined(is_hash_stored) && include("common.jl")
 
@@ -10,7 +11,7 @@ using BitmapMapsExtras: paint_curvature_types!, indices_on_grid, RGB
 #################################
 
 @testset "Curvature types" begin
-    vhash = ["e0ee520e3e3617086df04e9af1f0dfce36c66700", "38a0cad0dde309084a840aaec412854b7061e932", "f00ffa26ac74848e8b2e496723efe9c19b0ee86d", "d95ae038d180f388c71d5a2355c9d9a904b188d1", "c2e621bc8fa02595c10028ec43107dd85c0423c4", "aa82aa6b54496968c7e4b33319ecc5f8b4b99fc3"]
+    vhash = ["217360f5027e03457d1dcdad29ed973d93b8e793", "cbe32ab9d7b405866e8200671817e68eca09e705", "4ee47227650446059979bfff36fa1912f1c7c30c", "37b1b89afdf83f220128cf39eeb8e6de6b2d9a63", "634b828141731d70f784615ec44d71981e3ceaab", "1ef7d86da5b6a5de02cc226221904aacaa43a6ae"]
     COUNT[] = 0
     z = z_ridge_peak_valleys()
     pts = CartesianIndices(z)

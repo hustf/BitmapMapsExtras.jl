@@ -7,13 +7,12 @@ using BitmapMapsExtras: placements_and_values, pack_glyphs!, Vec2OnGrid, Bidirec
 using BitmapMapsExtras: plot_glyphs_given_values!, 𝐧ₚ!, 𝐊!, coarse_radius_for_plotting
 using BitmapMapsExtras: GSTensor
 using BitmapMapsExtras: coverage_fitting_image, MMatrix
-using BitmapMapsExtras: mark_at!
-using Random: MersenneTwister
+using BitmapMapsExtras: mark_at!, N0f8
 using BitmapMapsExtras.TestMatrices
 !@isdefined(is_hash_stored) && include("common.jl")
 
 @testset begin "Mark circumference of a vector glyph"
-    vhash = ["0c7aa19cb937e5bea7c38f0389ccf879b0e89a66"]
+    vhash = ["f872524b12ebaf0ee3e63b7dee291fb370130925"]
     COUNT[] = 0
     img = fill(RGB{N0f8}(0.624,0.667,0.663), 200, 200)
     cov = [0f0 for i = 1:200, j=1:200]
@@ -79,7 +78,7 @@ end
 end
 
 @testset begin "pack vector glyphs no collision"
-    vhash = ["5f094c6f8ffddc98c81115f7cbf006c0d24907ea"]
+    vhash = ["d2f29ba39e6b5cb16eec98505e7828facfcb2ce7"]
     COUNT[] = 0
     img = fill(PALETTE_GRGB[1], 200, 200)
     b(x, y) = [80.0, -20.0]
@@ -93,10 +92,9 @@ end
 
 
 @testset begin "Mark circumference of a bidirectional vector glyph"
-    vhash = ["89d43eb2eb5de191f518b22ac203a75083d122b9"]
+    vhash = ["067ebe69603e498e53093f4b68dc4bf4d350ea9e"]
     COUNT[] = 0
     img = fill(RGB{N0f8}(0.624,0.667,0.663), 200, 200)
-
     gs = GSTensor(multip = 0.8, direction = 1, maxg = 200, ming = -200)
     cov = coverage_fitting_image(img, gs)
     @test cov isa Matrix{Float32}
@@ -128,7 +126,7 @@ end
 end
 
 @testset begin "Mark circumference of a tensor glyph"
-    vhash = ["d066a776c9d6fe142f92587c8a616cb034693523"]
+    vhash = ["c7f0121a5cd63cf9a17c0ba0d5fea3352638b0d2"]
     COUNT[] = 0
     img = fill(RGB{N0f8}(0.624,0.667,0.663), 500, 500)
     gs = GSTensor(multip = 2, direction = 1:2, maxg = 500, ming = -500)
@@ -200,7 +198,7 @@ end
 
 
 @testset begin "2d vector glyph crash detection, 1 ends within 2"
-    vhash = ["e82dbb97603196a2052a92aad9398551ccedab07"]
+    vhash = ["d58329a3e6b7de1be6ee7784f489dbb35ad3b92f"]
     COUNT[] = 0
     gs = GSVector(multip = 1.16, maxg = 200)
     # Here, we check if the crash test works with the
@@ -229,7 +227,7 @@ end
 end
 
 @testset begin "2d vector glyph crash detection, 1 crosses 2"
-    vhash = ["96561b8967219e8e6ca094a0a44e32e10f781b82"]
+    vhash = ["9e3dd94ce0cf31b1c2969da6d40f2a555b8e93c8"]
     COUNT[] = 0
     gs = GSVector(multip = 1.16, maxg = 200)
     # Here, we check if the crash test works with the
@@ -256,7 +254,7 @@ end
 end
 
 @testset begin "Bidirectional vector glyph crash detection"
-    vhash = ["ed082541e20d1e2da0841b01c1c8d4a6e2d603d1"]
+    vhash = ["246980f61ddc7445154d9c85b7da117d5d8725cc"]
     COUNT[] = 0
     gs = GSTensor(multip = 1, maxg = 100, ming = -100, direction = 1)
     function fdir!(K, a, b, c, d, M, e, f)
@@ -279,7 +277,7 @@ end
 end
 
 @testset begin "Bidirectional tensor glyph crash detection"
-    vhash = ["d9f4455e19fcc35bd275c93676823bbc1e420c1e"]
+    vhash = ["f3a40bbd3525275fc87c48e2a2774bc1fa53ffe4"]
     COUNT[] = 0
     gs = GSTensor(multip = 1, maxg = 100, ming = -100)
     function fdir!(K, a, b, c, d, M, e, f)

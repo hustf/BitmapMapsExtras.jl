@@ -1,6 +1,6 @@
 using Test
-using BitmapMapsExtras: N0f8, RGBA
 using BitmapMapsExtras
+using BitmapMapsExtras: N0f8, RGBA
 using BitmapMapsExtras.TestMatrices
 using BitmapMapsExtras: plot_glyphs!, plot_glyphs, PALETTE_GRGB, RGB
 using BitmapMapsExtras: GSTensor, GSTangentBasis, GSVector
@@ -10,9 +10,8 @@ using BitmapMapsExtras: radial_distance_glyph, pack_glyphs!
 using BitmapMapsExtras: indices_on_grid, default_ij_functor, 𝐊ᵤ!, 𝐊!
 
 !@isdefined(hash_image) && include("common.jl")
-
 @testset "Plot tangent basis" begin
-    vhash = ["9b85d71b5edfe55a284bbb4907b67a2809ab931e", "04f14ea5f72f7e56cd3179252b5047f3e4011f55"]
+    vhash = ["b942849a8d52f1254eda7dea6a5f104f3c62c137", "ccecdb2fe0c8ee28ef03fb0a12d1aa7d57d9d221"]
     COUNT[] = 0
     gs = GSTangentBasis()
     pts = [CartesianIndex((315, 215))]
@@ -26,7 +25,7 @@ end
 
 
 @testset "Descent vector" begin 
-    vhash = ["fbfd0a976f81d605a7a67fe9e2456ce691ef3d77", "ca4b35dc0aa0897e34a30e24b91b8b1160a5ff79"]
+    vhash = ["ae52041380af7ab9d46e34ab9c80a1a8fba62162", "261ec4726d6e7da5477e249d4e81e72dc6625044"]
     COUNT[] = 0
     gs = GSVector()
     pts = [CartesianIndex((315, 215))]
@@ -40,7 +39,7 @@ end
 end
 
 @testset "Descent unit vector" begin 
-    vhash = ["6ddcfde16c64e1736db9a2c65c7981aac4369c3d", "3e238347523804239ee75c33a9409876ef38df6a"]
+    vhash = ["fdd6ff2992be35aa512590ee846d42c60ebf082c", "146e9cb3f2d5714453450ef16814488ad83a2676"]
     COUNT[] = 0
     gs = GSVector()
     pts = [CartesianIndex((315, 215))]
@@ -57,7 +56,7 @@ end
 
 
 @testset "Curvature" begin
-    vhash = ["25461ae74fe83cd2903aadc09368ead0add36d29", "e798766ebd9238e12908aee6f2701411d2986851"]
+    vhash = ["4ca534a1680a2170c65d9ccddb42cad1571d8d53", "ca41ecdb038e73476e8b96e813457fec23cf6ba4"]
     COUNT[] = 0
     # We don't make a functor object, because the
     # default for a GSTensor is what we want.
@@ -72,7 +71,7 @@ end
 end
 
 @testset "Unit curvature" begin
-    vhash = ["33aa58431f0e539d331d1d800da9755809e653c4", "1905f3f4c98a772c14e4c7f09c0037baea415477"]
+    vhash = ["d23f090b6971f71c1d5a4aa1628f0f773d34b8cf", "da8d0f6f8b045f11914453c10c9dfc6313b4bbed"]
     COUNT[] = 0
     gs = GSTensor( multip = 45)
     pts = [CartesianIndex((315, 215))]
@@ -89,7 +88,7 @@ end
 
 
 @testset "Packed" begin
-    vhash = ["43a0f15aec21deae2c85024d7c28ed44221329ea", "19546f7b18ea588a044b65b39e76287b16283e70", "983b300e6bb0dd06142b1f30a780d08dc483efcd", "7a28f4ecdcc9e3ee202c615bff6211e5e453e14a", "7b15c6c74f22881e7da8618b21e7d0a90eeb5478", "fadbbc288db34d0cc6c8c9bc517030d9068b76e1", "1346ecb69b5de921cc40184735c16f82db814956"]
+    vhash = ["b5084a8c3e562dd5988107ec48b13467faf5391e", "69c5d9e64c56f3b814c119a33e4704b4106cd552", "f4c905d816dcbcfe22ab71dedb803f428dc11708", "86021239fe92bab1a50a16f4c26ada4a62593555", "c5cbf21a2d4431517a44cb424e0541169f927361", "d47ee5cd2575f812898c4346ce5a48dc7e703b66", "a322d3d1222a686ca6352c94b617e60cf4cc5de3"]
     COUNT[] = 0
     z = z_ellipsoid(;tilt = 0.5)[100:400, 100:400]
     #
@@ -136,7 +135,7 @@ end
 end
 
 @testset "More examples curvature" begin
-    vhash = ["dda981106fbdba38ccae4d6004cf628d733054e3", "b006ef40610d3be1e13f0dd5a66c016be775860f", "87b953a36bf264576bbf5c4c209ebb040bcac001", "074614f13d7b76f9b8364f3e45ab1de4ef10aa11", "3fe83b80336530f288bb62f1d920fa95c992f57d", "70088b51485d4410647aaf54117aa809928bae9a", "77b148374b5ee437f44aa4ac6213e02cee8b7c87", "2a3322a5b2a43d47fa52b56cf078d7a2fea52ac1"]
+    vhash = ["dbd797102d14064ccadf4237c5f9df0878974862", "a712a45d997e776bdc6c75200814efd67247b008", "529acd7e863bff4bfb5a56bfa81dcbbd5b18c9fd", "e5019237ebaf0604b025dc66c9adcf003a93da6c", "bda4e88e3ae13f874f0770b0e04edebd5a5aebb2", "34049a2d4851b289cda6440dfeafbf7b5be6dd1c", "5eedea4b2c100491764c0482cd6411d1e5d248ad", "4b88a9f549f9f622859a876c2a246007f6c6e62e"]
     COUNT[] = 0
     bdog = BidirectionOnGrid(𝐊!, z_cylinder_offset(π / 6))
     img = background(bdog)
@@ -181,7 +180,7 @@ end
 
 
 @testset "More examples unit curvature" begin
-    vhash = ["6662ab9dd72373e6318f77260971902ab9babb5c", "94356cf19e013fc63a1d29b61e98f0ad98f75d7e", "0c3e2e07d1e86952c627ea9ca4d536ed8295ac89", "f8a967162188d9733aabced5ac1fbd6b399294bd", "675b8ef76cee851a263a9c594de9d576c1610dcb", "4ea93a4ea55472c3b490fcefe8ecd01999b5c892", "3917fe66c32271ead12ba7e2ff2422a78e5149f4", "5ee88c4a619397e3d672eb59be610de5c1e6ad0f"]
+    vhash = ["4b6a3165f80caf20201c95108363fae64bcc7035", "40e823377ec0ea9c1637689361533a6d610606b8", "dc18466c31c79fcc5250c5bd9ac002b1178ecc3b", "9b66afb0581ba9b82692563a83e5434316e5fa13", "f73319d6b482fbc7ade899eee3f05f0369be5d50", "71c5ddea9ada7190b4f20776527c1b127f685f23", "fc46dd39cb0d61530e966be2165e943b614b4df7", "3abfc61577d52d7b08fdd56aeecc348ae643c3ff"]
     COUNT[] = 0
     bdog = BidirectionOnGrid(𝐊ᵤ!, z_cylinder_offset(π / 6))
     img = background(bdog)
@@ -233,7 +232,7 @@ using BitmapMapsExtras: indices_scattered, MersenneTwister
 using BitmapMapsExtras: placements_and_values, plot_glyphs_given_values!
 !@isdefined(hash_image) && include("common.jl")
 
-vhash = ["943f92be5048f710722304cbcca17b60e20bc2b2"]
+vhash = String[]
 COUNT[] = 0
 #
 bdog = BidirectionOnGrid(𝐊!, z_ellipsoid(; tilt = π / 4))
@@ -252,6 +251,4 @@ filtered_placements, filtered_values = placements_and_values(fij, gs, ppts)
 # 33.181 ms (5480 allocations: 7.82 MiB) # Before moving funcs to `DrawAndSpray`
 # 27.076 ms (5394 allocations: 15.43 MiB) # After moving funcs to 'DrawAndSpray'
 @btime plot_glyphs_given_values!(img, filtered_placements, filtered_values, gs)
-@test is_hash_stored(img, vhash)
-@profview plot_glyphs_given_values!(img, filtered_placements, filtered_values, gs)
 =#
