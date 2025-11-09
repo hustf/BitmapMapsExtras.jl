@@ -13,7 +13,7 @@ julia> using BitmapMapsExtras.TestMatrices: I0
 julia> varinfo(TestMatrices)
   name                                  size summary
   ––––––––––––––––––––––––––––––– –––––––––– –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
-  TestMatrices                    21.970 KiB Module
+  TestMatrices                    21.675 KiB Module
   background                         0 bytes background (generic function with 3 methods)
   principal_curvatures_paraboloid    0 bytes principal_curvatures_paraboloid (generic function with 2 methods)
   z_cos                              0 bytes z_cos (generic function with 1 method)
@@ -22,6 +22,7 @@ julia> varinfo(TestMatrices)
   z_ellipsoid                        0 bytes z_ellipsoid (generic function with 1 method)
   z_exp3                             0 bytes z_exp3 (generic function with 1 method)
   z_paraboloid                       0 bytes z_paraboloid (generic function with 1 method)
+  z_plane                            0 bytes z_plane (generic function with 1 method)
   z_ridge_peak_valleys               0 bytes z_ridge_peak_valleys (generic function with 1 method)
   z_sphere                           0 bytes z_sphere (generic function with 1 method)
 
@@ -34,7 +35,7 @@ import ..AbstractIJFunctor, ..AbstractXYFunctor
 import ImageCore
 using ImageCore: scaleminmax, RGBA, N0f8
 export z_cylinder, z_cylinder_offset, z_sphere, z_ellipsoid, 
-    z_paraboloid, z_cos, z_exp3, z_ridge_peak_valleys
+    z_paraboloid, z_cos, z_exp3, z_plane, z_ridge_peak_valleys
 export principal_curvatures_saddle, principal_curvatures_paraboloid
 export background
 ##############################################
@@ -171,6 +172,17 @@ function z_exp3(; λ = r, mult = r)
             mult * (y / λ)^3 
     end
 end
+
+"""
+    z_plane(; λ = r, , mult = r^2)    
+"""
+function z_plane(; a = 0.1, b = 0.2)
+    map(R) do I
+        y, x = (I - I0).I
+        a * x + b * y
+    end
+end
+
 
 
 function zigzag(x)

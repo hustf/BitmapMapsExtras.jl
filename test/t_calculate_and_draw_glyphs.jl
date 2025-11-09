@@ -56,7 +56,7 @@ end
 
 
 @testset "Curvature" begin
-    vhash = ["4ca534a1680a2170c65d9ccddb42cad1571d8d53", "ca41ecdb038e73476e8b96e813457fec23cf6ba4"]
+    vhash = ["4ca534a1680a2170c65d9ccddb42cad1571d8d53", "991c9ac324fe7a30c972ecaf381e26ee86632b08"]
     COUNT[] = 0
     # We don't make a functor object, because the
     # default for a GSTensor is what we want.
@@ -71,7 +71,7 @@ end
 end
 
 @testset "Unit curvature" begin
-    vhash = ["d23f090b6971f71c1d5a4aa1628f0f773d34b8cf", "da8d0f6f8b045f11914453c10c9dfc6313b4bbed"]
+    vhash = ["d23f090b6971f71c1d5a4aa1628f0f773d34b8cf", "c3c874b33560cc4036bb5be50e9d18a25bfd5782"]
     COUNT[] = 0
     gs = GSTensor( multip = 45)
     pts = [CartesianIndex((315, 215))]
@@ -135,7 +135,7 @@ end
 end
 
 @testset "More examples curvature" begin
-    vhash = ["dbd797102d14064ccadf4237c5f9df0878974862", "a712a45d997e776bdc6c75200814efd67247b008", "529acd7e863bff4bfb5a56bfa81dcbbd5b18c9fd", "e5019237ebaf0604b025dc66c9adcf003a93da6c", "bda4e88e3ae13f874f0770b0e04edebd5a5aebb2", "34049a2d4851b289cda6440dfeafbf7b5be6dd1c", "5eedea4b2c100491764c0482cd6411d1e5d248ad", "4b88a9f549f9f622859a876c2a246007f6c6e62e"]
+    vhash = ["dbd797102d14064ccadf4237c5f9df0878974862", "a712a45d997e776bdc6c75200814efd67247b008", "529acd7e863bff4bfb5a56bfa81dcbbd5b18c9fd", "772da649516fd0391ffda4554d42df030361b0c9", "bda4e88e3ae13f874f0770b0e04edebd5a5aebb2", "34049a2d4851b289cda6440dfeafbf7b5be6dd1c", "5eedea4b2c100491764c0482cd6411d1e5d248ad", "4b88a9f549f9f622859a876c2a246007f6c6e62e"]
     COUNT[] = 0
     bdog = BidirectionOnGrid(𝐊!, z_cylinder_offset(π / 6))
     img = background(bdog)
@@ -180,7 +180,7 @@ end
 
 
 @testset "More examples unit curvature" begin
-    vhash = ["4b6a3165f80caf20201c95108363fae64bcc7035", "40e823377ec0ea9c1637689361533a6d610606b8", "dc18466c31c79fcc5250c5bd9ac002b1178ecc3b", "9b66afb0581ba9b82692563a83e5434316e5fa13", "f73319d6b482fbc7ade899eee3f05f0369be5d50", "71c5ddea9ada7190b4f20776527c1b127f685f23", "fc46dd39cb0d61530e966be2165e943b614b4df7", "3abfc61577d52d7b08fdd56aeecc348ae643c3ff"]
+    vhash = ["4b6a3165f80caf20201c95108363fae64bcc7035", "40e823377ec0ea9c1637689361533a6d610606b8", "dc18466c31c79fcc5250c5bd9ac002b1178ecc3b", "847845c542751bf80247dd4bb91d381552b51678", "f73319d6b482fbc7ade899eee3f05f0369be5d50", "71c5ddea9ada7190b4f20776527c1b127f685f23", "fc46dd39cb0d61530e966be2165e943b614b4df7", "3abfc61577d52d7b08fdd56aeecc348ae643c3ff"]
     COUNT[] = 0
     bdog = BidirectionOnGrid(𝐊ᵤ!, z_cylinder_offset(π / 6))
     img = background(bdog)
@@ -223,32 +223,3 @@ end
     @test is_hash_stored(img, vhash)
 end
 
-# DEV 
-
-# This aims to benchmark the drawing functionality itself.
-#=
-using BenchmarkTools # test dependency
-using BitmapMapsExtras: indices_scattered, MersenneTwister
-using BitmapMapsExtras: placements_and_values, plot_glyphs_given_values!
-!@isdefined(hash_image) && include("common.jl")
-
-vhash = String[]
-COUNT[] = 0
-#
-bdog = BidirectionOnGrid(𝐊!, z_ellipsoid(; tilt = π / 4))
-img = background(bdog);
-display_if_vscode(img)
-
-# We're unpacking this call:
-# pack_glyphs!(img, bdog, GSTensor(multip = 12000, strength = 10))
-scatterdist = 3.0
-seed = MersenneTwister(123)
-fij = bdog
-gs = GSTensor(multip = 12000, strength = 10)
-ppts = indices_scattered(fij; scatterdist, seed)
-filtered_placements, filtered_values = placements_and_values(fij, gs, ppts)
-# Now benchmark the plotting for later reference
-# 33.181 ms (5480 allocations: 7.82 MiB) # Before moving funcs to `DrawAndSpray`
-# 27.076 ms (5394 allocations: 15.43 MiB) # After moving funcs to 'DrawAndSpray'
-@btime plot_glyphs_given_values!(img, filtered_placements, filtered_values, gs)
-=#

@@ -93,7 +93,7 @@ function principal_curvatures_and_angles!(vβ, vα, vκ, P, M, vϕ, lpc)
     @assert typeof(ϕ1) <: Float64
     # Principal angles vβ in the yx (screen) plane. 
     tangent_dyad_to_xy!(vβ, ϕ1, P)
-    vβ, κ1, κ2 
+    vβ, κ1, κ2
 end
 
 """
@@ -210,6 +210,7 @@ function angle_tangent_to_xy!(vα, vϕ, P)
         α = atan(y, x)
     end
 end
+
 """
     tangent_dyad_to_xy!(vα, ϕ::AbstractFloat, P)
 
@@ -316,6 +317,7 @@ function principal_curvature_and_direction(vκ::T, lpc) where T <: SVector{4, Fl
     if isnan(ϕp)
         throw(ErrorException("Unexpected NaN: vκ, a, b, c = $vκ $a $b $c"))
     end
+    @assert κ1  >= κ2
     κ1, κ2, ϕp
 end
 principal_curvature_and_direction(vκ, lpc) = 

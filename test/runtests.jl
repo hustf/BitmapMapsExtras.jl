@@ -20,7 +20,7 @@ using Test
         include("t_calculate_and_draw_glyphs.jl")
     end
     @testset "paint curvature type" begin
-        include("t_paint_curvature_type.jl")
+        include("t_paint_convexity_rank.jl")
     end
     @testset "pack glyphs" begin
         include("t_pack.jl")

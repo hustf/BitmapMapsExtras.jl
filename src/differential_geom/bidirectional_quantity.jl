@@ -39,14 +39,22 @@ function components_vector!(v, κ, β)
     if κ >= 0
         # First or second quadrant
         x = β⁺ > π ? β⁺ - π : β⁺
+        v[1] = abs(κ) * cos(x)
+        v[2] = abs(κ) * sin(x)
     else
         # Third or fourth quadrant
-        x = β⁺ > π ? β⁺ : β⁺ + π
+        if β⁺ > π
+            cx = cos(β⁺)
+            sx = sin(β⁺)
+        else
+            # Equivalent to sin(β⁺ + π) = -sin(β⁺), cos(β⁺ + π) = -cos(β⁺)
+            # Avoids FP rounding when adding tiny β⁺ to π (e.g., lands 
+            # on approx. π where sin(π) > 0 tiny)
+            cx = -cos(β⁺)
+            sx = -sin(β⁺)
+        end
+        v[1] = abs(κ) * cx
+        v[2] = abs(κ) * sx
     end
-    v[1] = abs(κ) * cos(x)
-    v[2] = abs(κ) * sin(x)
+    v
 end
-
-
-
-

@@ -7,8 +7,6 @@ using BitmapMapsExtras: PALETTE_GRGB, MersenneTwister
 using BitmapMapsExtras: mark_at!, display_if_vscode
 import StatsBase
 using StatsBase: Weights, sample
-#using BitmapMaps: divergence_of_gradients
-
 
 !@isdefined(is_hash_stored) && include("common.jl")
 
@@ -36,7 +34,7 @@ end
 
 
 @testset "Solution keyword example" begin
-    vhash = ["05b9ff239b9a8800cae039f74896f6425f200cfb", "6ec1f7b870cefa772791f3631ff650c5db9207c1", "2a2193b606237c07ce87e54ad62a588f0e492cea"]
+    vhash = ["7248a93f9ec457d8087e33fdca522325ed6cc6fd", "6ec1f7b870cefa772791f3631ff650c5db9207c1", "edd8be4537dfc249656d29e142bfdf3b73c39419"]
     COUNT[] = 0
     saxy = SelectedVec2AtXY(𝐊ᵤ!, z_ellipsoid(), true, true)
     pts = indices_on_grid(saxy)
@@ -61,7 +59,7 @@ end
 
 
 @testset "Streamlines starting on grid" begin
-    vhash = ["ad8e4694820a831cc97ace21b05e2e8873769da0", "c146dd70bf34342e7cbe73e8ed9d60f32f61d3d0", "fcdff1b08a433fbbe09a7feb7349bbddcd9a32d8", "07db5cfc8785612fda59d3fc9587b219322f8324", "9af5944069742124977d530d4378573678d682d7", "f3264a0c84ea20f7d3aec9936e6767c82da59185", "c25623f64ae0a81a29274f1afe9dccb33587b406", "2fff0a82074bd2e793f08e8ab5fe09a007c8714a"]
+    vhash = ["ad8e4694820a831cc97ace21b05e2e8873769da0", "c146dd70bf34342e7cbe73e8ed9d60f32f61d3d0", "fcdff1b08a433fbbe09a7feb7349bbddcd9a32d8", "07db5cfc8785612fda59d3fc9587b219322f8324", "9af5944069742124977d530d4378573678d682d7", "f3264a0c84ea20f7d3aec9936e6767c82da59185", "ca3e974448d579743b22e7c195488443a69b77e3", "2fff0a82074bd2e793f08e8ab5fe09a007c8714a"]
     COUNT[] = 0
     vzf = [z_cos,
         () -> z_cylinder(π / 6),
@@ -100,7 +98,7 @@ end
 end
 
 @testset "Many streamlines in both directions from grid points" begin
-    vhash = ["7bfeebcbae92e5a89bdcf30c7989765fe58e55ab", "88572781c66f78f1714c7659a41925c2062fae26"]
+    vhash = ["15910c6e2dbee78782692f2f9ed8545006320691", "c482dccf5505289d3be7f7f7cd6062869b135bad"]
     COUNT[] = 0
     stroke = Stroke(strength = 0.05)
     tstop = 2000 # default is 1000
@@ -128,7 +126,7 @@ end
 end
 
 @testset "Streamlines without grid" begin
-    vhash = ["65da87c9fd2a98196f61e4e102c64176318c71e3", "f9a62df1d6010e799f3fe34183492824e8f4a8f1"]
+    vhash = ["ecfab2979c884c4db8a71e854889bfe7b7aa3ae4", "614a7695db192fa73192eb1538f03b5cff49c5c2"]
     COUNT[] = 0
     stroke = Stroke(strength = 0.05)
     tstop = 2000 # default is 1000

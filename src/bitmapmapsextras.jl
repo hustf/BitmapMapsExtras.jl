@@ -66,6 +66,20 @@ const COLOR_CURVGLYPH = RGB{N0f8}(0.85, 0.5, 0.9)
 const PALETTE_GRGB = SVector{4, RGB{N0f8}}(
     [RGB(0.4785,0.5119,0.5096), RGB(0.957, 0.0, 0.078), RGB(0.0, 0.549, 0.0), RGB(0.0, 0.443, 1.0)])
 
+"""
+For curvature rank.
+
+| Rank | Curvature type | Color |
+| ------------- | ------------- |  ------------- |
+| 1 | Convex - convex  | Green    |
+| 2 | Convex - flat    | Bleak green |
+| 3 | Convex - concave | Blue |
+| 4 | Flat - flat      | Grey |
+| 5 | Flat - concave   | Bleak red |
+| 6 | Concave - concave| Red |
+"""
+const PALETTE_CONVEXITY = RGB{N0f8}[RGB(0.0, 0.549, 0.0), RGB(0.333, 0.514, 0.286), RGB(0.0, 0.443, 1.0), RGB(0.471, 0.471, 0.471), RGB(0.753, 0.361, 0.286), RGB(0.957, 0.0, 0.078)]
+
 "Bright colors in roughly similar luminance."
 const PALETTE_RGB = (RGB{N0f8}(0.95, 0.0,  0.0),
                      RGB{N0f8}(0.0,  0.5,  0.0),
@@ -115,7 +129,7 @@ include("visualization/plot_glyph_given_value.jl")
 include("visualization/pack_glyphs.jl")
 include("visualization/calculate_and_draw_glyphs.jl")
 include("visualization/calculate_and_draw_streamlines.jl")
-include("visualization/calculate_and_paint_curvature_type.jl")
+include("visualization/calculate_and_paint_convexity_rank.jl")
 include("visualization/default_ij_functor.jl")
 include("visualization/glyph_indices.jl")
 include("tensormap_functions.jl")

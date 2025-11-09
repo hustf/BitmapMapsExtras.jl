@@ -64,6 +64,10 @@ We're using [OrdinaryDiffEq](https://docs.sciml.ai/OrdinaryDiffEq/stable/) to ma
 
 ## Current progress
 
+Version 0.1.3
+
+Improve painting by convexity type.
+
 Version 0.1.2
 
 Move graphics code to `DrawAndSpray.jl`
