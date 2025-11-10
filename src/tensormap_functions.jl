@@ -1,11 +1,15 @@
 # File contains utilty functions for
 # the 4x4 mutable matrix ('K') we use as a tensor map
-# for the 'world basis'.  
+# for the basis.  
+
+##################################################
+# Interpolation while respecting major-minor order
+##################################################
 
 """
     interpolate_unit_square!(value::TENSORMAP, corners::SMatrix{2, 2, TENSORMAP}, xus::AbstractFloat, yus::AbstractFloat)
 
-Implemented here since we couldn't make Interpolations.jl's return @inferred.
+Implemented here since we couldn't make Interpolations.jl's return fully inferrable.
 """
 function interpolate_unit_square!(value::TENSORMAP, corners::SMatrix{2, 2, TENSORMAP}, xus::AbstractFloat, yus::AbstractFloat)
     x = clamp(xus, 0.0, 1.0)
@@ -113,6 +117,9 @@ function swap_columns!(mc, i, j)
     mc
 end
 
+
+
+
 """
     is_close_to_perpendicular(v1::T, v2::T) where T <: MVector{2, Float64}
 
@@ -131,7 +138,9 @@ Combine code `dot_product_with....`
     n1 == 0 || n2 == 0 ? false : abs(d) < 0.2 * sqrt(n1 * n2)
 end
 
-
+#########
+# Various
+######### 
 """
     normalize_or_zero!(v)
 
@@ -145,4 +154,68 @@ function normalize_or_zero!(v)
         v ./= mag
     end
     v
+end
+
+
+#########################
+# Derived properties of K
+#########################
+
+"""
+    signed_curvature_values(K)
+    --> {Float64, Float64}
+"""
+function signed_curvature_values(K)
+    s1 = norm(K[:, 1]) * (is_bidirec_vect_positive(K[:, 1]) ? 1 : -1)
+    s2 = norm(K[:, 2]) * (is_bidirec_vect_positive(K[:, 2]) ? 1 : -1)
+    s1, s2
+end
+
+rank_123_ranks(c1, c2) = (c1 - 1) * (8 - c1) ÷ 2 + (c2 - c1 +1)
+
+
+"""
+    convexity_rank(s::Float64, flatval)
+    --> Int 1-3
+    convexity_rank(K, flatval)
+    --> Int 1-6
+
+Lexicographic rank, not "matrix rank".
+
+# Arguments
+
+- `s`       : signed curvature component along principal direction
+- `flatval` : Flat is when  `abs(curvature) < flatval`
+- `K` is a 2 x 2 matrix, format defined by `principal_curvature_components!`
+
+
+| Signed curvature component | Rank   | Description |
+| -------------------------- | -------| ----------- |
+|            s > flatval     | 1      |  Convex     |
+| -flatval < s < flatval     | 2      |  Flat       |
+|            s < - flatval   | 3      |  Concave    |
+
+
+Rank of principal curvature components (`K`):
+
+
+| Major rank | Minor rank | Rank   | Description       |
+| ---------- | ---------- | ------ | ----------------  |
+|  1         | 1          |  1     | Convex  - convex  |
+|  1         | 2          |  2     | Convex  - flat    |
+|  1         | 3          |  3     | Convex  - concave |
+|  2         | 2          |  4     | Flat    - flat    |
+|  2         | 3          |  5     | Flat    - Concave |
+|  3         | 3          |  6     | Concave - concave |
+
+"""
+convexity_rank(s::Float64, flatval) = s > flatval ? 1 : s < -flatval ? 3 : 2
+function convexity_rank(K, flatval)
+    # K is ordered: Coloumn 1 is major, column 2 is minor.
+    s1, s2 = signed_curvature_values(K)
+    @assert s1 >= s2 "s1 $s1 >= s2 $s2"
+    c1 = convexity_rank(s1, flatval)
+    c2 = convexity_rank(s2, flatval)
+    # Ordered combination no., 1-6
+    rank_123_ranks(c1, c2)
 end

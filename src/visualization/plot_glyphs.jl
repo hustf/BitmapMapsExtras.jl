@@ -1,5 +1,5 @@
-# Functions that both calculate and draw glyphs,
-# one at a time instead of allocating result matrices first.
+# Functions that both calculate and draw glyphs.
+#
 # Contains 
 # - plot_glyphs 
 # - plot_glyphs!
@@ -97,8 +97,6 @@ function plot_glyphs!(cov::T, fij::AbstractIJFunctor, pts, gs::AbstractGlyphSpec
     cov
 end
 
-
-
 ##########################
 # Plot glyphs given values
 ##########################
@@ -127,9 +125,10 @@ function plot_glyphs_given_values!(cov::T, pts, values, gs::AbstractGlyphSpec) w
     cov
 end
 
+########################################
+# Extension of methods from DrawAndSpray
+########################################
 
-# These methods extension use types defined in this package. They,
-# whereas `DrawAndSpray.apply_color_by_coverage!` is more general
 """
     apply_color_by_coverage!(img, cov, gs::AbstractGlyphSpec)
     apply_color_by_coverage!(img, cov, gs::GSTensor{<:Any, 1})

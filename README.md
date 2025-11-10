@@ -64,6 +64,10 @@ We're using [OrdinaryDiffEq](https://docs.sciml.ai/OrdinaryDiffEq/stable/) to ma
 
 ## Current progress
 
+Version 0.1.4
+
+Refactor functions in files.
+
 Version 0.1.3
 
 Improve painting by convexity type.
